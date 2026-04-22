@@ -1,0 +1,184 @@
+{% load socialaccount %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- "ch" letter mark - perfect for chichi brand -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c3e50'/%3E%3Ctext x='50' y='68' text-anchor='middle' fill='white' font-size='48' font-family='system-ui, sans-serif' font-weight='600'%3Ech%3C/text%3E%3C/svg%3E">
+    <title>Sign in · chichi</title>
+    <!-- Bootstrap 5 CSS + Icons (lean, no external images) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        /* minimal custom overrides – keep it airy and simple */
+        body {
+            background: linear-gradient(145deg, #f4f7fc 0%, #eef2f5 100%);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+
+        .login-card {
+            max-width: 400px;
+            width: 100%;
+            background: rgba(255,255,255,0.96);
+            backdrop-filter: blur(0px);
+            border-radius: 32px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.01);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .login-card:hover {
+            box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.02);
+        }
+
+        .logo {
+            font-size: 2.8rem;
+            font-weight: 620;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #1e2a3a, #2c3e50);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .subhead {
+            font-size: 0.95rem;
+            color: #5b6e8c;
+            border-bottom: 1px solid #e9edf2;
+            display: inline-block;
+            padding-bottom: 4px;
+        }
+
+        .btn-google-simple {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background-color: #ffffff;
+            border: 1px solid #dce3ec;
+            border-radius: 60px;
+            padding: 12px 20px;
+            font-weight: 500;
+            font-size: 1rem;
+            color: #1f2a44;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn-google-simple i {
+            font-size: 1.45rem;
+            color: #ea4335;   /* google-inspired red, but purely icon-based */
+            transition: transform 0.1s ease;
+        }
+
+        .btn-google-simple:hover {
+            background-color: #fafcff;
+            border-color: #cbd6e4;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03);
+            transform: translateY(-1px);
+        }
+
+        .btn-google-simple:active {
+            transform: translateY(1px);
+            background-color: #f5f7fb;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #8e9eae;
+            font-size: 0.8rem;
+            margin: 24px 0 16px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e4e9f0;
+        }
+
+        .divider::before {
+            margin-right: 16px;
+        }
+        .divider::after {
+            margin-left: 16px;
+        }
+
+        .info-note {
+            font-size: 0.75rem;
+            color: #8696a8;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f8fafd;
+            padding: 8px 14px;
+            border-radius: 40px;
+        }
+
+        .info-note i {
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                margin: 1rem;
+                padding: 1.75rem !important;
+            }
+            .logo {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body class="d-flex align-items-center justify-content-center m-0 p-3">
+
+<div class="login-card p-4 p-md-5">
+    <!-- brand section — clean typography -->
+    <div class="text-center mb-3">
+        <div class="logo">chichi</div>
+        <div class="mt-2">
+            <span class="subhead">sign in · secure access</span>
+        </div>
+    </div>
+
+    <p class="text-center text-muted mt-3 mb-4" style="font-size: 0.9rem;">
+        Welcome back, use your Google account to continue
+    </p>
+
+    <!-- Google sign-in button — pure Bootstrap icon, no img tag -->
+    <a href="{% provider_login_url 'google' next=request.GET.next|default:'home' %}" 
+       class="btn-google-simple mt-1 mb-2">
+        <i class="bi bi-google"></i>
+        <span>Sign in with Google</span>
+    </a>
+
+    <!-- subtle info divider + extra context (clean & minimal) -->
+    <div class="divider">
+        <span>instant & secure</span>
+    </div>
+
+    <div class="d-flex justify-content-center mt-2">
+        <div class="info-note">
+            <i class="bi bi-shield-lock-fill"></i>
+            <span>No password needed · one-click access</span>
+        </div>
+    </div>
+
+    <!-- tiny footnote / no images used, only icons -->
+    <div class="text-center mt-4">
+        <small class="text-muted d-inline-flex align-items-center gap-1" style="opacity: 0.7;">
+            <i class="bi bi-shield-lock-fill" style="font-size: 0.7rem;"></i> 
+            <span>ChiChi Secure Access &nbsp;|&nbsp; <i class="bi bi-google"></i> OAuth</span>
+        </small>
+    </div>
+</div>
+
+<!-- optional: bootstrap JS not required for pure design, but included for any future interactive needs (not necessary) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
