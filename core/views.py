@@ -6,3 +6,8 @@ from django.contrib.auth.decorators import login_required
 @login_required
 def home_view(request):
     return render(request, 'files/home.html')
+
+
+@login_required
+def connect_view(request):
+    return render(request, 'files/connect.html')

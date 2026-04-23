@@ -13,7 +13,8 @@ SECRET_KEY = 'django-insecure-_&#99syx33)#f5oy=-acs8a3!_0lys*-2pz@^*#)b2a6xoz+t#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
+CSRF_TRUSTED_ORIGINS = ['https://cd49-102-209-76-98.ngrok-free.app']
 
 # Application definition
 
@@ -30,17 +31,35 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'core',
     'authentication',
 ]
 
 
 
+# 2. Tell Django to use Channels' ASGI application
+ASGI_APPLICATION = "chichi.asgi.application"
+ 
+# 3. Channel Layers – Redis backend
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6380)],
+        },
+    }
+}
+ 
+# 4. Redis URL used by the consumer directly for matchmaking Set operations
+REDIS_URL = "redis://127.0.0.1:6380"
+
 # Custom user model
 AUTH_USER_MODEL = 'authentication.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
 
     'allauth.account.middleware.AccountMiddleware',
