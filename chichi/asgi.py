@@ -1,28 +1,19 @@
-"""
-ASGI config for chichi project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/6.0/howto/deployment/asgi/
-"""
-"""
-ASGI config – supports both HTTP (Django) and WebSocket (Channels).
-Place this file at  <project_root>/<project_name>/asgi.py
-and make sure DJANGO_SETTINGS_MODULE is set correctly.
-"""
 import os
 import django
 from django.core.asgi import get_asgi_application
+
+# 1. Set the environment variable first
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chichi.settings')
+
+# 2. Initialize Django (crucial: must be done before importing routing/consumers)
+django.setup()
+
+# 3. NOW import your Channels components and routing
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from core.routing import websocket_urlpatterns
 
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'chichi.settings')
-
-django.setup()
-
+# 4. Define the application
 application = ProtocolTypeRouter(
     {
         "http": get_asgi_application(),

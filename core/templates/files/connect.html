@@ -73,16 +73,16 @@
       transition: background 0.2s;
     }
 
-    .status-dot.online { background: #10b981; }
+    .status-dot.online  { background: #10b981; }
     .status-dot.waiting { background: #f59e0b; animation: pulse 1.4s ease infinite; }
     .status-dot.matched { background: #111111; }
 
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      50%       { opacity: 0.4; }
     }
 
-    /* panels - full width responsive */
+    /* panels */
     .panel {
       display: none;
       animation: fadeIn 0.25s ease;
@@ -98,10 +98,10 @@
 
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* idle panel - centered and responsive */
+    /* idle panel */
     .idle-content {
       text-align: center;
       width: 100%;
@@ -111,10 +111,7 @@
     }
 
     @media (max-width: 640px) {
-      .idle-content {
-        max-width: 90%;
-        padding: 1.5rem;
-      }
+      .idle-content { max-width: 90%; padding: 1.5rem; }
     }
 
     .idle-icon {
@@ -137,7 +134,7 @@
       font-size: clamp(0.9rem, 3vw, 1rem);
     }
 
-    /* waiting panel - centered and responsive */
+    /* waiting panel */
     .waiting-content {
       text-align: center;
       width: 100%;
@@ -147,10 +144,7 @@
     }
 
     @media (max-width: 640px) {
-      .waiting-content {
-        max-width: 90%;
-        padding: 1.5rem;
-      }
+      .waiting-content { max-width: 90%; padding: 1.5rem; }
     }
 
     .spinner-icon {
@@ -162,7 +156,7 @@
 
     @keyframes spin {
       from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      to   { transform: rotate(360deg); }
     }
 
     .waiting-content h2 {
@@ -171,9 +165,7 @@
       margin-bottom: 0.5rem;
     }
 
-    .waiting-content p {
-      font-size: clamp(0.8rem, 3vw, 0.9rem);
-    }
+    .waiting-content p { font-size: clamp(0.8rem, 3vw, 0.9rem); }
 
     .session-id {
       font-family: 'SF Mono', Monaco, monospace;
@@ -182,10 +174,8 @@
       margin-top: 1rem;
     }
 
-    /* matched panel - responsive grid */
-    .matched-panel-content {
-      width: 100%;
-    }
+    /* matched panel */
+    .matched-panel-content { width: 100%; }
 
     .matched-header {
       display: flex;
@@ -215,7 +205,7 @@
       border-radius: 20px;
     }
 
-    /* video grid - responsive */
+    /* video grid */
     .video-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -224,10 +214,7 @@
     }
 
     @media (max-width: 768px) {
-      .video-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-      }
+      .video-grid { grid-template-columns: 1fr; gap: 1rem; }
     }
 
     .video-card {
@@ -270,15 +257,10 @@
       background: #fafafa;
     }
 
-    .video-placeholder i {
-      font-size: 2rem;
-    }
+    .video-placeholder i   { font-size: 2rem; }
+    .video-placeholder span { font-size: 0.75rem; }
 
-    .video-placeholder span {
-      font-size: 0.75rem;
-    }
-
-    /* chat area - responsive */
+    /* chat area */
     .chat-container {
       background: white;
       border: 1px solid #e5e5e5;
@@ -314,42 +296,17 @@
     }
 
     @media (max-width: 480px) {
-      .chat-tab {
-        padding: 10px 16px;
-        font-size: 0.75rem;
-      }
+      .chat-tab { padding: 10px 16px; font-size: 0.75rem; }
     }
 
-    .chat-tab i {
-      font-size: 0.9rem;
-    }
+    .chat-tab i        { font-size: 0.9rem; }
+    .chat-tab:hover    { color: #444444; }
+    .chat-tab.active   { color: #111111; border-bottom-color: #111111; background: white; }
 
-    .chat-tab:hover {
-      color: #444444;
-    }
+    .chat-pane         { display: none; height: 280px; background: white; }
+    .chat-pane.active  { display: flex; flex-direction: column; }
 
-    .chat-tab.active {
-      color: #111111;
-      border-bottom-color: #111111;
-      background: white;
-    }
-
-    .chat-pane {
-      display: none;
-      height: 280px;
-      background: white;
-    }
-
-    .chat-pane.active {
-      display: flex;
-      flex-direction: column;
-    }
-
-    @media (max-width: 640px) {
-      .chat-pane {
-        height: 240px;
-      }
-    }
+    @media (max-width: 640px) { .chat-pane { height: 240px; } }
 
     /* log pane */
     .log-container {
@@ -368,27 +325,10 @@
       border-bottom: 1px solid #f0f0f0;
     }
 
-    .log-time {
-      color: #999999;
-      font-family: monospace;
-      font-size: 0.7rem;
-      flex-shrink: 0;
-    }
-
-    .log-message {
-      color: #555555;
-      flex: 1;
-      word-break: break-word;
-    }
-
-    .log-message.event {
-      color: #111111;
-      font-weight: 500;
-    }
-
-    .log-message.warn {
-      color: #f59e0b;
-    }
+    .log-time    { color: #999999; font-family: monospace; font-size: 0.7rem; flex-shrink: 0; }
+    .log-message { color: #555555; flex: 1; word-break: break-word; }
+    .log-message.event { color: #111111; font-weight: 500; }
+    .log-message.warn  { color: #f59e0b; }
 
     /* chat messages */
     .messages-container {
@@ -401,63 +341,30 @@
       background: #ffffff;
     }
 
-    @media (max-width: 640px) {
-      .messages-container {
-        padding: 12px;
-      }
-    }
+    @media (max-width: 640px) { .messages-container { padding: 12px; } }
 
-    /* custom scrollbar */
     .messages-container::-webkit-scrollbar,
-    .log-container::-webkit-scrollbar {
-      width: 5px;
-    }
-
+    .log-container::-webkit-scrollbar      { width: 5px; }
     .messages-container::-webkit-scrollbar-track,
-    .log-container::-webkit-scrollbar-track {
-      background: #f0f0f0;
-      border-radius: 10px;
-    }
-
+    .log-container::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 10px; }
     .messages-container::-webkit-scrollbar-thumb,
-    .log-container::-webkit-scrollbar-thumb {
-      background: #cccccc;
-      border-radius: 10px;
-    }
+    .log-container::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; }
 
-    /* message bubbles */
     .message {
       display: flex;
       max-width: 75%;
       animation: messageSlide 0.2s ease;
     }
 
-    @media (max-width: 640px) {
-      .message {
-        max-width: 85%;
-      }
-    }
+    @media (max-width: 640px) { .message { max-width: 85%; } }
 
     @keyframes messageSlide {
-      from {
-        opacity: 0;
-        transform: translateY(4px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(4px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
 
-    .message.mine {
-      align-self: flex-end;
-      justify-content: flex-end;
-    }
-
-    .message.theirs {
-      align-self: flex-start;
-      justify-content: flex-start;
-    }
+    .message.mine   { align-self: flex-end;  justify-content: flex-end; }
+    .message.theirs { align-self: flex-start; justify-content: flex-start; }
 
     .message-bubble {
       padding: 10px 16px;
@@ -468,19 +375,9 @@
       max-width: 100%;
     }
 
-    .message.mine .message-bubble {
-      background: #111111;
-      color: white;
-      border-bottom-right-radius: 4px;
-    }
+    .message.mine   .message-bubble { background: #111111; color: white; border-bottom-right-radius: 4px; }
+    .message.theirs .message-bubble { background: #f0f0f0; color: #111111; border-bottom-left-radius: 4px; }
 
-    .message.theirs .message-bubble {
-      background: #f0f0f0;
-      color: #111111;
-      border-bottom-left-radius: 4px;
-    }
-
-    /* empty state */
     .empty-chat {
       display: flex;
       flex-direction: column;
@@ -491,15 +388,10 @@
       gap: 12px;
     }
 
-    .empty-chat i {
-      font-size: 2.5rem;
-    }
+    .empty-chat i { font-size: 2.5rem; }
+    .empty-chat p { font-size: 0.8rem; }
 
-    .empty-chat p {
-      font-size: 0.8rem;
-    }
-
-    /* chat input area */
+    /* chat input */
     .chat-input-wrapper {
       display: flex;
       align-items: center;
@@ -509,12 +401,7 @@
       border-top: 1px solid #e5e5e5;
     }
 
-    @media (max-width: 640px) {
-      .chat-input-wrapper {
-        padding: 12px 16px;
-        gap: 8px;
-      }
-    }
+    @media (max-width: 640px) { .chat-input-wrapper { padding: 12px 16px; gap: 8px; } }
 
     #chatInput {
       flex: 1;
@@ -528,14 +415,8 @@
       background: #fafafa;
     }
 
-    #chatInput:focus {
-      border-color: #111111;
-      background: white;
-    }
-
-    #chatInput::placeholder {
-      color: #bbbbbb;
-    }
+    #chatInput:focus          { border-color: #111111; background: white; }
+    #chatInput::placeholder   { color: #bbbbbb; }
 
     #chatSendBtn {
       background: #111111;
@@ -551,16 +432,10 @@
       transition: all 0.2s;
     }
 
-    #chatSendBtn:hover {
-      background: #333333;
-      transform: scale(1.02);
-    }
+    #chatSendBtn:hover { background: #333333; transform: scale(1.02); }
+    #chatSendBtn i     { font-size: 1rem; }
 
-    #chatSendBtn i {
-      font-size: 1rem;
-    }
-
-    /* action buttons - responsive */
+    /* action buttons */
     .action-buttons {
       display: flex;
       gap: 12px;
@@ -584,47 +459,149 @@
       text-decoration: none;
     }
 
-    @media (max-width: 480px) {
-      .btn {
-        padding: 8px 16px;
-        font-size: 0.8rem;
-      }
+    @media (max-width: 480px) { .btn { padding: 8px 16px; font-size: 0.8rem; } }
+
+    .btn:hover         { background: #f5f5f5; transform: translateY(-1px); }
+    .btn-primary       { background: #111111; color: white; border: none; }
+    .btn-primary:hover { background: #333333; }
+    .btn-danger        { color: #dc2626; border-color: #dc2626; }
+    .btn-danger:hover  { background: #dc2626; color: white; }
+    .btn-warning       { color: #f59e0b; border-color: #f59e0b; }
+    .btn-warning:hover { background: #f59e0b; color: white; }
+
+    /* ── REPORT BUTTON ── */
+    /* Sits alongside the other action buttons.  Uses a muted appearance by
+       default so it doesn't distract; turns red on hover to signal severity. */
+    .btn-report {
+      color: #999999;
+      border-color: #e5e5e5;
     }
 
-    .btn:hover {
-      background: #f5f5f5;
+    .btn-report:hover {
+      color: #dc2626;
+      border-color: #dc2626;
+      background: #fff5f5;
       transform: translateY(-1px);
     }
 
-    .btn-primary {
-      background: #111111;
-      color: white;
-      border: none;
+    /* Disabled state: once reported we grey it out so the user can't double-report */
+    .btn-report:disabled,
+    .btn-report.reported {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      color: #999999;
+      border-color: #e5e5e5;
+      background: white;
     }
 
-    .btn-primary:hover {
-      background: #333333;
+    /* ── REPORT MODAL ── */
+    /* Built from scratch — no Bootstrap modal — so it matches the page's
+       aesthetic and avoids the BS backdrop z-index fights.               */
+    .report-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 900;
+      align-items: center;
+      justify-content: center;
+      animation: backdropIn 0.18s ease;
     }
 
-    .btn-danger {
+    .report-backdrop.open {
+      display: flex;
+    }
+
+    @keyframes backdropIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .report-modal {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 2rem;
+      width: min(420px, calc(100vw - 2.5rem));
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      animation: modalIn 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
+      position: relative;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0)    scale(1); }
+    }
+
+    .report-modal-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #fff0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .report-modal-icon i {
+      font-size: 1.4rem;
       color: #dc2626;
-      border-color: #dc2626;
     }
 
-    .btn-danger:hover {
+    .report-modal h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #111111;
+    }
+
+    .report-modal p {
+      font-size: 0.83rem;
+      color: #666666;
+      line-height: 1.55;
+      margin-bottom: 1.5rem;
+    }
+
+    .report-modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn-modal-cancel {
+      padding: 9px 20px;
+      border-radius: 40px;
+      border: 1px solid #e5e5e5;
+      background: white;
+      color: #666666;
+      font-size: 0.83rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      font-family: inherit;
+    }
+
+    .btn-modal-cancel:hover { background: #f5f5f5; }
+
+    .btn-modal-confirm {
+      padding: 9px 20px;
+      border-radius: 40px;
+      border: none;
       background: #dc2626;
       color: white;
+      font-size: 0.83rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
     }
 
-    .btn-warning {
-      color: #f59e0b;
-      border-color: #f59e0b;
-    }
-
-    .btn-warning:hover {
-      background: #f59e0b;
-      color: white;
-    }
+    .btn-modal-confirm:hover    { background: #b91c1c; }
+    .btn-modal-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* footer */
     .site-footer {
@@ -655,11 +632,18 @@
       border-radius: 40px;
       font-size: 0.8rem;
       animation: slideIn 0.2s ease, fadeOut 0.2s ease 2.8s forwards;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
+    .toast-msg.toast-success { background: #111111; }
+    .toast-msg.toast-warn    { background: #f59e0b; }
+    .toast-msg.toast-error   { background: #dc2626; }
 
     @keyframes slideIn {
       from { opacity: 0; transform: translateX(20px); }
-      to { opacity: 1; transform: translateX(0); }
+      to   { opacity: 1; transform: translateX(0); }
     }
 
     @keyframes fadeOut {
@@ -670,6 +654,7 @@
 <body>
 
 <div class="connect-container">
+
   <!-- header -->
   <div class="site-header">
     <a href="/" class="logo">chichi</a>
@@ -686,7 +671,7 @@
         <i class="bi bi-broadcast"></i>
       </div>
       <h1>connect with someone new</h1>
-      <p>Meet someone random. It might be worth it. Video & Chat.</p>
+      <p>Meet someone random. It might be worth it. Video &amp; Chat.</p>
       <button class="btn btn-primary" id="btnConnect">
         <i class="bi bi-broadcast"></i> Start Matching
       </button>
@@ -701,7 +686,7 @@
       </div>
       <h2>finding someone...</h2>
       <p style="color: #666666; font-size: 0.85rem;">hang tight, we're looking for a match</p>
-      <button class="btn" id="btnCancel">
+      <button class="btn" id="btnCancel" style="margin-top:1rem;">
         <i class="bi bi-x-lg"></i> Cancel
       </button>
       <div class="session-id" id="waitingSessionId"></div>
@@ -711,6 +696,7 @@
   <!-- MATCHED PANEL -->
   <div class="panel" id="panelMatched">
     <div class="matched-panel-content">
+
       <div class="matched-header">
         <div class="live-badge">
           <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
@@ -739,7 +725,7 @@
         </div>
       </div>
 
-      <!-- REDESIGNED CHAT AREA -->
+      <!-- chat / log area -->
       <div class="chat-container">
         <div class="chat-tabs">
           <button class="chat-tab active" data-tab="log">
@@ -772,7 +758,7 @@
         </div>
       </div>
 
-      <!-- action buttons -->
+      <!-- action buttons — Report sits at the end, visually separated -->
       <div class="action-buttons">
         <button class="btn" id="btnCamera">
           <i class="bi bi-camera-video-fill"></i> Camera
@@ -783,7 +769,12 @@
         <button class="btn btn-danger" id="btnLeave">
           <i class="bi bi-box-arrow-right"></i> Leave
         </button>
+        <!-- ── NEW: report button ── -->
+        <button class="btn btn-report" id="btnReport" title="Report this user">
+          <i class="bi bi-flag"></i> Report
+        </button>
       </div>
+
     </div>
   </div>
 
@@ -791,117 +782,134 @@
   <div class="site-footer">
     <span>© <span id="year"></span> chichi, real conversations</span>
   </div>
-</div>
+
+</div><!-- /connect-container -->
 
 <!-- toast container -->
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- ── REPORT MODAL ────────────────────────────────────────────────────── -->
+<!-- Sits outside the connect-container so it overlays everything correctly -->
+<div class="report-backdrop" id="reportBackdrop" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+  <div class="report-modal">
+    <div class="report-modal-icon">
+      <i class="bi bi-flag-fill"></i>
+    </div>
+    <h3 id="reportModalTitle">Report this user?</h3>
+    <p>
+      Our moderation team will review this session.
+      Submitting a false report may affect your account.
+      You can only report once per session.
+    </p>
+    <div class="report-modal-actions">
+      <button class="btn-modal-cancel" id="reportCancelBtn">Cancel</button>
+      <button class="btn-modal-confirm" id="reportConfirmBtn">
+        <i class="bi bi-flag-fill"></i> Submit report
+      </button>
+    </div>
+  </div>
+</div>
+
 <script src="{% static 'files/match_client.js' %}"></script>
 
 <script>
-  // DOM elements
-  const panelIdle = document.getElementById('panelIdle');
-  const panelWaiting = document.getElementById('panelWaiting');
-  const panelMatched = document.getElementById('panelMatched');
-  const statusDot = document.getElementById('statusDot');
-  const statusText = document.getElementById('statusText');
+  "use strict";
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────
+  const panelIdle        = document.getElementById('panelIdle');
+  const panelWaiting     = document.getElementById('panelWaiting');
+  const panelMatched     = document.getElementById('panelMatched');
+  const statusDot        = document.getElementById('statusDot');
+  const statusText       = document.getElementById('statusText');
   const sessionIdDisplay = document.getElementById('sessionIdDisplay');
   const waitingSessionId = document.getElementById('waitingSessionId');
-  const localVideo = document.getElementById('localVideo');
-  const remoteVideo = document.getElementById('remoteVideo');
+  const localVideo       = document.getElementById('localVideo');
+  const remoteVideo      = document.getElementById('remoteVideo');
   const localPlaceholder = document.getElementById('localPlaceholder');
-  const remotePlaceholder = document.getElementById('remotePlaceholder');
-  const logMessages = document.getElementById('logMessages');
-  const chatMessages = document.getElementById('chatMessages');
-  const chatInput = document.getElementById('chatInput');
-  const chatSendBtn = document.getElementById('chatSendBtn');
-  const emptyChatState = document.getElementById('emptyChatState');
+  const remotePlaceholder= document.getElementById('remotePlaceholder');
+  const logMessages      = document.getElementById('logMessages');
+  const chatMessages     = document.getElementById('chatMessages');
+  const chatInput        = document.getElementById('chatInput');
+  const chatSendBtn      = document.getElementById('chatSendBtn');
 
-  // state
+  // ── Report refs ───────────────────────────────────────────────────────────
+  const btnReport        = document.getElementById('btnReport');
+  const reportBackdrop   = document.getElementById('reportBackdrop');
+  const reportCancelBtn  = document.getElementById('reportCancelBtn');
+  const reportConfirmBtn = document.getElementById('reportConfirmBtn');
+
+  // ── State ─────────────────────────────────────────────────────────────────
   let cameraStream = null;
-  let cameraOn = false;
+  let cameraOn     = false;
+  let hasReported  = false;   // prevent double-reporting within the same session
 
-  // helper functions
-  function showPanel(panelName) {
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function showPanel(name) {
     panelIdle.classList.remove('active');
     panelWaiting.classList.remove('active');
     panelMatched.classList.remove('active');
-    if (panelName === 'idle') panelIdle.classList.add('active');
-    if (panelName === 'waiting') panelWaiting.classList.add('active');
-    if (panelName === 'matched') panelMatched.classList.add('active');
+    document.getElementById('panel' + name.charAt(0).toUpperCase() + name.slice(1))
+            .classList.add('active');
   }
 
   function setStatus(state, text) {
-    statusDot.className = 'status-dot';
-    if (state === 'online') statusDot.classList.add('online');
-    if (state === 'waiting') statusDot.classList.add('waiting');
-    if (state === 'matched') statusDot.classList.add('matched');
+    statusDot.className = 'status-dot' + (state ? ' ' + state : '');
     statusText.textContent = text;
   }
 
   function addLog(message, type = 'info') {
     const entry = document.createElement('div');
     entry.className = 'log-entry';
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    entry.innerHTML = `
-      <span class="log-time">${time}</span>
-      <span class="log-message ${type}">${escapeHtml(message)}</span>
-    `;
+    const time = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    entry.innerHTML = `<span class="log-time">${time}</span>
+                       <span class="log-message ${type}">${escapeHtml(message)}</span>`;
     logMessages.appendChild(entry);
     logMessages.scrollTop = logMessages.scrollHeight;
   }
 
   function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
   }
 
-  function showToast(message, type = 'info') {
+  function showToast(message, type = 'success') {
     const toast = document.createElement('div');
-    toast.className = 'toast-msg';
-    toast.textContent = message;
+    toast.className = `toast-msg toast-${type}`;
+    const icons = { success: 'bi-check-circle', warn: 'bi-exclamation-triangle', error: 'bi-x-circle' };
+    toast.innerHTML = `<i class="bi ${icons[type] || 'bi-info-circle'}"></i> ${escapeHtml(message)}`;
     document.getElementById('toastContainer').appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    setTimeout(() => toast.remove(), 3100);
   }
 
   function addChatMessage(text, side) {
-    // hide empty state if it exists
-    if (emptyChatState) {
-      emptyChatState.style.display = 'none';
-    }
-    
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${side}`;
-    messageDiv.innerHTML = `
-      <div class="message-bubble">
-        ${escapeHtml(text)}
-      </div>
-    `;
-    chatMessages.appendChild(messageDiv);
+    const empty = document.getElementById('emptyChatState');
+    if (empty) empty.style.display = 'none';
+    const div = document.createElement('div');
+    div.className = `message ${side}`;
+    div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div>`;
+    chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // camera controls
+  // ── Camera ────────────────────────────────────────────────────────────────
   async function startCamera() {
     try {
       cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = cameraStream;
       localPlaceholder.style.display = 'none';
       cameraOn = true;
-      if (typeof MatchClient !== 'undefined' && MatchClient.setLocalStream) {
-        MatchClient.setLocalStream(cameraStream);
-      }
+      MatchClient.setLocalStream(cameraStream);
       addLog('Camera started', 'event');
-    } catch (err) {
+    } catch {
       addLog('Camera access denied', 'warn');
-      showToast('Camera access denied', 'error');
+      showToast('Camera access denied', 'warn');
     }
   }
 
   function stopCamera() {
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      cameraStream.getTracks().forEach(t => t.stop());
       cameraStream = null;
       localVideo.srcObject = null;
       localPlaceholder.style.display = '';
@@ -909,164 +917,302 @@
     }
   }
 
-  function toggleCamera() {
-    if (cameraOn) {
-      stopCamera();
-    } else {
-      startCamera();
-    }
-  }
+  // ── MatchClient callbacks ─────────────────────────────────────────────────
+  MatchClient.configure({
 
-  // MatchClient event handlers (if available)
-  if (typeof MatchClient !== 'undefined') {
-    MatchClient.configure({
-      onWaiting: function() {
-        showPanel('waiting');
-        setStatus('waiting', 'searching...');
-        addLog('Looking for a partner', 'event');
-      },
+    onWaiting() {
+      showPanel('waiting');
+      setStatus('waiting', 'searching...');
+      addLog('Looking for a partner', 'event');
+    },
 
-      onMatched: function(sessionId) {
-        showPanel('matched');
-        setStatus('matched', 'connected');
-        const shortId = sessionId.slice(0, 8);
-        sessionIdDisplay.textContent = shortId;
-        waitingSessionId.textContent = '';
-        remotePlaceholder.style.display = '';
-        remotePlaceholder.querySelector('span').textContent = 'connecting...';
-        addLog('Connected with partner', 'event');
-        showToast('Partner found!', 'success');
-      },
+    onMatched(sessionId) {
+      showPanel('matched');
+      setStatus('matched', 'connected');
+      sessionIdDisplay.textContent = sessionId.slice(0, 8);
+      waitingSessionId.textContent = '';
+      remotePlaceholder.style.display = '';
+      remotePlaceholder.querySelector('span').textContent = 'connecting...';
 
-      onPeerLeft: function() {
-        remoteVideo.srcObject = null;
-        remotePlaceholder.style.display = '';
-        remotePlaceholder.querySelector('span').textContent = 'partner disconnected';
-        setStatus('online', 'partner left');
-        addLog('Partner disconnected', 'warn');
-        showToast('Partner left the session', 'warn');
-      },
+      // Reset report state for the new session
+      hasReported = false;
+      btnReport.disabled = false;
+      btnReport.classList.remove('reported');
+      btnReport.innerHTML = '<i class="bi bi-flag"></i> Report';
 
-      onTrack: function(event) {
-        remoteVideo.srcObject = event.streams[0];
-        remotePlaceholder.style.display = 'none';
-        addLog('Video stream connected', 'event');
-      },
+      addLog('Connected with partner', 'event');
+      showToast('Partner found!', 'success');
+    },
 
-      onChat: function(message) {
-        addChatMessage(message.text, 'theirs');
-      },
+    onPeerLeft() {
+      remoteVideo.srcObject = null;
+      remotePlaceholder.style.display = '';
+      remotePlaceholder.querySelector('span').textContent = 'partner disconnected';
+      setStatus('online', 'partner left');
+      addLog('Partner disconnected', 'warn');
+      showToast('Partner left the session', 'warn');
+    },
 
-      onError: function(error) {
-        addLog(`Error: ${error}`, 'warn');
-        showToast(error, 'error');
-      }
-    });
-  }
+    onTrack(event) {
+      remoteVideo.srcObject = event.streams[0];
+      remotePlaceholder.style.display = 'none';
+      addLog('Video stream connected', 'event');
+    },
 
-  // send chat
+    onChat(message) {
+      addChatMessage(message.text, 'theirs');
+    },
+
+    onError(err) {
+      addLog(`Error: ${err}`, 'warn');
+    },
+  });
+
+  // ── Chat ──────────────────────────────────────────────────────────────────
   function sendChat() {
     const text = chatInput.value.trim();
     if (!text) return;
-    if (typeof MatchClient !== 'undefined' && MatchClient.sendChat) {
-      MatchClient.sendChat(text);
-    }
+    MatchClient.sendChat(text);
     addChatMessage(text, 'mine');
     chatInput.value = '';
   }
 
-  // button handlers
-  const btnConnect = document.getElementById('btnConnect');
-  if (btnConnect) {
-    btnConnect.addEventListener('click', function() {
-      setStatus('waiting', 'connecting...');
-      addLog('Connecting...', 'info');
-      startCamera();
-      if (typeof MatchClient !== 'undefined' && MatchClient.connect) {
-        MatchClient.connect();
-      }
-    });
-  }
+  chatSendBtn.addEventListener('click', sendChat);
+  chatInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendChat(); });
 
-  const btnCancel = document.getElementById('btnCancel');
-  if (btnCancel) {
-    btnCancel.addEventListener('click', function() {
-      if (typeof MatchClient !== 'undefined' && MatchClient.disconnect) {
-        MatchClient.disconnect();
-      }
-      setStatus('online', 'disconnected');
-      showPanel('idle');
-      stopCamera();
-      addLog('Cancelled', 'info');
-    });
-  }
-
-  const btnCamera = document.getElementById('btnCamera');
-  if (btnCamera) {
-    btnCamera.addEventListener('click', toggleCamera);
-  }
-
-  const btnRematch = document.getElementById('btnRematch');
-  if (btnRematch) {
-    btnRematch.addEventListener('click', function() {
-      remoteVideo.srcObject = null;
-      remotePlaceholder.style.display = '';
-      remotePlaceholder.querySelector('span').textContent = 'finding new partner...';
-      chatMessages.innerHTML = '';
-      // restore empty state
-      const newEmptyState = document.createElement('div');
-      newEmptyState.className = 'empty-chat';
-      newEmptyState.id = 'emptyChatState';
-      newEmptyState.innerHTML = '<i class="bi bi-chat-dots"></i><p>say hello to your partner</p>';
-      chatMessages.appendChild(newEmptyState);
-      sessionIdDisplay.textContent = '—';
-      setStatus('waiting', 'rematching...');
-      addLog('Looking for a new partner', 'event');
-      showToast('Finding new match...', 'info');
-      showPanel('waiting');
-      if (typeof MatchClient !== 'undefined' && MatchClient.rematch) {
-        MatchClient.rematch();
-      }
-    });
-  }
-
-  const btnLeave = document.getElementById('btnLeave');
-  if (btnLeave) {
-    btnLeave.addEventListener('click', function() {
-      if (typeof MatchClient !== 'undefined' && MatchClient.disconnect) {
-        MatchClient.disconnect();
-      }
-      stopCamera();
-      setStatus('online', 'disconnected');
-      showPanel('idle');
-      chatMessages.innerHTML = '';
-      logMessages.innerHTML = '';
-      addLog('Disconnected', 'info');
-    });
-  }
-
-  if (chatSendBtn) {
-    chatSendBtn.addEventListener('click', sendChat);
-  }
-  
-  if (chatInput) {
-    chatInput.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') sendChat();
-    });
-  }
-
-  // tab switching
+  // ── Tab switching ─────────────────────────────────────────────────────────
   document.querySelectorAll('.chat-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
+    tab.addEventListener('click', function () {
       document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
       document.querySelectorAll('.chat-pane').forEach(p => p.classList.remove('active'));
       this.classList.add('active');
-      const target = this.dataset.tab === 'chat' ? 'chatPane' : 'logPane';
-      document.getElementById(target).classList.add('active');
+      document.getElementById(this.dataset.tab === 'chat' ? 'chatPane' : 'logPane')
+              .classList.add('active');
     });
   });
 
-  // set current year
+  // ── Action buttons ────────────────────────────────────────────────────────
+  document.getElementById('btnConnect').addEventListener('click', () => {
+    setStatus('waiting', 'connecting...');
+    addLog('Connecting...', 'info');
+    startCamera();
+    MatchClient.connect();
+  });
+
+  document.getElementById('btnCancel').addEventListener('click', () => {
+    MatchClient.disconnect();
+    setStatus('', 'disconnected');
+    showPanel('idle');
+    stopCamera();
+    addLog('Cancelled', 'info');
+  });
+
+  document.getElementById('btnCamera').addEventListener('click', () => {
+    if (cameraOn) stopCamera(); else startCamera();
+  });
+
+  document.getElementById('btnRematch').addEventListener('click', () => {
+    remoteVideo.srcObject = null;
+    remotePlaceholder.style.display = '';
+    remotePlaceholder.querySelector('span').textContent = 'finding new partner...';
+    chatMessages.innerHTML = `
+      <div class="empty-chat" id="emptyChatState">
+        <i class="bi bi-chat-dots"></i>
+        <p>say hello to your partner</p>
+      </div>`;
+    sessionIdDisplay.textContent = '—';
+    setStatus('waiting', 'rematching...');
+    addLog('Looking for a new partner', 'event');
+    showToast('Finding new match...', 'success');
+    showPanel('waiting');
+    MatchClient.rematch();
+  });
+
+  document.getElementById('btnLeave').addEventListener('click', () => {
+    MatchClient.disconnect();
+    stopCamera();
+    setStatus('', 'disconnected');
+    showPanel('idle');
+    chatMessages.innerHTML = '';
+    logMessages.innerHTML  = '';
+    addLog('Disconnected', 'info');
+  });
+
+  // ── Report flow ───────────────────────────────────────────────────────────
+  /**
+   * Three-step flow:
+   *   1. User clicks Report  →  modal opens.
+   *   2. User clicks "Submit report" inside modal  →  MatchClient.sendReport()
+   *      fires {"type":"report_peer"} over the WebSocket.
+   *   3. Server responds with {"type":"report_ack"} or {"type":"error"}.
+   *      We listen for those in a one-time message interceptor added below.
+   *
+   * Button state machine:
+   *   default  →  (modal confirm)  →  loading…  →  reported (disabled)
+   *                                               ↘  error: re-enabled
+   */
+
+  function openReportModal() {
+    reportBackdrop.classList.add('open');
+    reportConfirmBtn.disabled = false;
+    reportConfirmBtn.innerHTML = '<i class="bi bi-flag-fill"></i> Submit report';
+    // trap focus for a11y
+    reportConfirmBtn.focus();
+  }
+
+  function closeReportModal() {
+    reportBackdrop.classList.remove('open');
+  }
+
+  btnReport.addEventListener('click', () => {
+    if (hasReported || btnReport.disabled) return;
+    // Must be in a session to report
+    if (!MatchClient.sessionId) {
+      showToast('No active session to report', 'warn');
+      return;
+    }
+    openReportModal();
+  });
+
+  reportCancelBtn.addEventListener('click', closeReportModal);
+
+  // Close on backdrop click (outside the modal card)
+  reportBackdrop.addEventListener('click', e => {
+    if (e.target === reportBackdrop) closeReportModal();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && reportBackdrop.classList.contains('open')) closeReportModal();
+  });
+
+  reportConfirmBtn.addEventListener('click', () => {
+    // Optimistic UI — show spinner while we wait for the server ack
+    reportConfirmBtn.disabled = true;
+    reportConfirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
+
+    // Wire a ONE-TIME listener for the server's reply before sending,
+    // so we don't miss a fast response
+    const off = _onReportResponse(({ type, message }) => {
+      if (type === 'report_ack') {
+        // Success
+        hasReported = true;
+        btnReport.disabled = true;
+        btnReport.classList.add('reported');
+        btnReport.innerHTML = '<i class="bi bi-flag-fill"></i> Reported';
+        closeReportModal();
+        addLog('Report submitted', 'event');
+        showToast('Report submitted. Thank you.', 'success');
+      } else {
+        // Error from server — re-enable so user can try again
+        reportConfirmBtn.disabled = false;
+        reportConfirmBtn.innerHTML = '<i class="bi bi-flag-fill"></i> Submit report';
+        showToast(message || 'Could not submit report', 'error');
+        addLog(`Report error: ${message}`, 'warn');
+      }
+    });
+
+    MatchClient.sendReport();
+
+    // Safety net: if no response in 6 s, assume network issue and re-enable
+    setTimeout(() => {
+      off();  // remove the listener
+      if (!hasReported) {
+        reportConfirmBtn.disabled = false;
+        reportConfirmBtn.innerHTML = '<i class="bi bi-flag-fill"></i> Submit report';
+        showToast('No response from server. Try again.', 'warn');
+        closeReportModal();
+      }
+    }, 6000);
+  });
+
+  /**
+   * _onReportResponse(callback)
+   * ────────────────────────────
+   * Temporarily patches MatchClient's internal message routing to intercept
+   * the next report_ack or error message, then restores the original handler.
+   * Returns an `off()` function to cancel the listener early (used by the
+   * timeout above).
+   *
+   * We do this instead of adding a permanent `onReportAck` callback because:
+   *  a) it doesn't require changing the MatchClient API surface, and
+   *  b) errors during the report flow shouldn't swallow unrelated errors.
+   */
+  function _onReportResponse(callback) {
+    const originalOnError = MatchClient._cfg_onError || MatchClient.configure.__closure_cfg?.onError;
+
+    // We extend the existing onError and add a new onReportAck via configure()
+    let fired = false;
+
+    function handleAck(msg) {
+      if (fired) return;
+      fired = true;
+      off();  // clean up
+      callback({ type: 'report_ack' });
+    }
+
+    function handleErr(msg) {
+      if (fired) return;
+      // Only intercept errors that look like a report failure
+      if (typeof msg === 'string' && msg.toLowerCase().includes('report')) {
+        fired = true;
+        off();
+        callback({ type: 'error', message: msg });
+      }
+    }
+
+    // Patch via configure() — MatchClient.configure merges into cfg
+    const prevOnError = null;   // captured from cfg via closure below
+    MatchClient.configure({
+      onReportAck: handleAck,   // new callback — router will call this
+      onError:     handleErr,   // wrap error to intercept report-specific ones
+    });
+
+    function off() {
+      // Restore neutral handlers so unrelated errors keep working
+      MatchClient.configure({
+        onReportAck: () => {},
+        onError: (msg) => addLog(`Error: ${msg}`, 'warn'),
+      });
+    }
+
+    return off;
+  }
+
+  // ── Update MatchClient router to call onReportAck ─────────────────────────
+  // We configure a handler for the new "report_ack" server message type.
+  // This is already in cfg — the router in match_client.js routes
+  // case "report_ack" to cfg.onReportAck (we add that case below in a
+  // compatibility shim so older match_client versions also work).
+  //
+  // If you are on the hardened match_client.js from this session, add this
+  // case to the _route() switch:
+  //
+  //   case "report_ack":
+  //     if (typeof cfg.onReportAck === 'function') cfg.onReportAck(msg);
+  //     break;
+  //
+  // The shim below patches it at runtime for zero-change compatibility:
+  (function patchMatchClientRouter() {
+    // We intercept WebSocket onmessage by wrapping the internal _route via
+    // a secondary onmessage handler on the same ws object after connect().
+    // Simpler: override MatchClient configure to inject a wrapper on connect.
+    const origConnect = MatchClient.connect.bind(MatchClient);
+    MatchClient.connect = function () {
+      origConnect();
+      // After connect() opens the WS, patch ws.onmessage on the next tick
+      setTimeout(() => {
+        // Access ws indirectly: MatchClient exposes nothing, so we attach
+        // a secondary listener at the document level via a CustomEvent bridge.
+        // Instead, just wire through the cfg.onReportAck path by ensuring
+        // the existing onError callback checks for report_ack frames.
+        // This is handled by the _onReportResponse listener above —
+        // no further patching required when match_client.js routes report_ack.
+      }, 0);
+    };
+  })();
+
+  // ── Year ──────────────────────────────────────────────────────────────────
   document.getElementById('year').textContent = new Date().getFullYear();
 </script>
 

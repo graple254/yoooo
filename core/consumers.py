@@ -1,85 +1,205 @@
+"""
+core/consumers.py — MatchmakingConsumer
+─────────────────────────────────────────────────────────────────────────────
+Changes from the previous version:
+
+  CHANGE 1 · Redis pool entries now store  "channel_name:user_id"
+    Previously only channel_name was stored, so there was no way to know which
+    Django User the waiting peer belonged to.  The consumer now encodes both
+    pieces of information in a single string and decodes them wherever needed.
+
+  CHANGE 2 · MatchSession DB record created on match
+    When two peers are paired, a MatchSession row is inserted with both user
+    FKs and the session UUID.  All DB calls go through sync_to_async wrappers
+    so the async consumer never blocks.
+
+  CHANGE 3 · MatchSession updated on disconnect
+    The first disconnect for a given session_id writes end_time and
+    duration_seconds.  A second disconnect (the surviving peer) hits an already-
+    closed session and is handled gracefully.
+
+  CHANGE 4 · report_peer message type
+    A client can send {"type": "report_peer"} at any point during a matched
+    session.  The consumer flags the MatchSession row (reported=True,
+    reported_by, reported_at) without interrupting the session.
+
+  CHANGE 5 · is_offerer flag in matched message
+    The server now decides which peer should send the WebRTC offer.  peer2
+    (the one who triggered the match) is the offerer; peer1 (who was waiting)
+    is the answerer.  The client no longer needs a setTimeout race.
+"""
+
 import json
 import uuid
 import logging
+from datetime import timezone as tz
+
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.layers import get_channel_layer
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from asgiref.sync import sync_to_async
 import redis.asyncio as aioredis
 
 logger = logging.getLogger(__name__)
+User = get_user_model()
 
-# ---------------------------------------------------------------------------
-# Redis key helpers
-# ---------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+#  Redis key helpers
+# ─────────────────────────────────────────────────────────────────────────────
 WAITING_POOL_KEY = "matchmaking:waiting_pool"   # Redis Set
-SESSION_KEY      = lambda sid: f"session:{sid}" # Redis Hash  – stores peer1/peer2 channel names
+SESSION_KEY      = lambda sid: f"session:{sid}" # Redis Hash
 
 
 def get_redis():
-    """Return an async Redis client from settings."""
-    url = getattr(settings, "REDIS_URL", "redis://127.0.0.1:6380")
+    url = getattr(settings, "REDIS_URL", "redis://127.0.0.1:6379")
     return aioredis.from_url(url, decode_responses=True)
 
 
-# ---------------------------------------------------------------------------
-# Consumer
-# ---------------------------------------------------------------------------
+# ─────────────────────────────────────────────────────────────────────────────
+#  Helpers: encode / decode pool entries
+# ─────────────────────────────────────────────────────────────────────────────
+def _encode_pool_entry(channel_name: str, user_id: int) -> str:
+    """
+    CHANGE 1: store both channel_name and user_id in the Redis Set.
+    Format:  "<channel_name>:<user_id>"
+    channel_name already contains colons (e.g. "specific.abc123!xyz") so we
+    split from the RIGHT to isolate the user_id suffix.
+    """
+    return f"{channel_name}:{user_id}"
+
+
+def _decode_pool_entry(entry: str) -> tuple[str, int]:
+    """
+    Returns (channel_name, user_id).  Splits on the LAST colon so the
+    channel_name portion (which may itself contain colons) is preserved intact.
+    """
+    channel_name, user_id_str = entry.rsplit(":", 1)
+    return channel_name, int(user_id_str)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Async-safe DB helpers  (sync_to_async wrappers)
+# ─────────────────────────────────────────────────────────────────────────────
+@sync_to_async
+def _get_user(user_id: int):
+    try:
+        return User.objects.get(pk=user_id)
+    except User.DoesNotExist:
+        return None
+
+
+@sync_to_async
+def _create_match_session(session_uuid, user_one, user_two):
+    """CHANGE 2: create the DB record when a match is made."""
+    from core.models import MatchSession
+    return MatchSession.objects.create(
+        session_id=session_uuid,
+        user_one=user_one,
+        user_two=user_two,
+    )
+
+
+@sync_to_async
+def _close_match_session(session_uuid):
+    """
+    CHANGE 3: called by whichever peer disconnects first.
+    Idempotent — a second call on an already-closed session is a no-op.
+    """
+    from core.models import MatchSession
+    try:
+        record = MatchSession.objects.get(session_id=session_uuid)
+    except MatchSession.DoesNotExist:
+        return
+
+    if record.end_time is not None:
+        return                  # already closed by the other peer
+
+    now = timezone.now()
+    delta = now - record.start_time
+    record.end_time         = now
+    record.duration_seconds = int(delta.total_seconds())
+    record.save(update_fields=["end_time", "duration_seconds"])
+
+
+@sync_to_async
+def _flag_report(session_uuid, reporter_user):
+    """CHANGE 4: mark the session as reported."""
+    from core.models import MatchSession
+    try:
+        record = MatchSession.objects.get(session_id=session_uuid)
+    except MatchSession.DoesNotExist:
+        return
+
+    if record.reported:
+        return          # already reported — don't overwrite reporter
+
+    record.reported    = True
+    record.reported_by = reporter_user
+    record.reported_at = timezone.now()
+    record.save(update_fields=["reported", "reported_by", "reported_at"])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Consumer
+# ─────────────────────────────────────────────────────────────────────────────
 class MatchmakingConsumer(AsyncWebsocketConsumer):
     """
-    Lifecycle
-    ---------
-    1. connect()    – add the user to the waiting pool; if a partner is already
-                      waiting, pop them both and create a session.
-    2. receive()    – route WebRTC signaling messages (offer / answer / ice) and
-                      arbitrary shared payloads (game_move, sync, chat …) to the
-                      partner inside the same session group.
-    3. disconnect() – remove from the waiting pool (if still there) or notify the
-                      partner and tear down the session.
-
     Redis data structures
-    ---------------------
-    • WAITING_POOL_KEY  : Set  – channel_name strings of waiting peers
-    • session:<id>      : Hash – {peer1: <channel_name>, peer2: <channel_name>}
+    ─────────────────────
+    WAITING_POOL_KEY  : Set  – encoded entries  "channel_name:user_id"
+    session:<id>      : Hash – {peer1: <encoded>, peer2: <encoded>,
+                                peer1_user_id: <int>, peer2_user_id: <int>}
 
     Channel Layer groups
-    --------------------
-    Each matched pair shares a Channel Layer group named  session_<uuid>.
-    All signaling / game messages are sent to this group so both peers receive them.
+    ────────────────────
+    Each pair shares a group named  session_<uuid>.
     """
 
-    # ------------------------------------------------------------------ #
-    #  Connection                                                          #
-    # ------------------------------------------------------------------ #
+    # ── connect ──────────────────────────────────────────────────────────
     async def connect(self):
+        # Require authenticated user
+        if not self.scope["user"].is_authenticated:
+            await self.close()
+            return
+
         await self.accept()
 
-        self.session_id    = None   # set after matching
-        self.session_group = None
+        self.user            = self.scope["user"]
+        self.session_id      = None
+        self.session_group   = None
         self.partner_channel = None
+        self.partner_user    = None
 
         redis = get_redis()
         try:
             matched = await self._try_match(redis)
             if matched:
-                await self.send_json({"type": "matched", "session_id": self.session_id})
+                await self.send_json({
+                    "type":       "matched",
+                    "session_id": self.session_id,
+                    "is_offerer": True,     # CHANGE 5: peer2 = offerer
+                })
             else:
                 await self.send_json({"type": "waiting"})
         finally:
             await redis.aclose()
 
-    # ------------------------------------------------------------------ #
-    #  Matchmaking logic                                                   #
-    # ------------------------------------------------------------------ #
+    # ── matchmaking ──────────────────────────────────────────────────────
     async def _try_match(self, redis) -> bool:
         """
-        Atomically pop one waiting peer and pair them with the current one.
-        Returns True if a match was made, False if we were added to the pool.
+        CHANGE 1: pool entries are now  "channel_name:user_id".
+        SPOP pops one entry atomically; we decode it to get the partner's
+        channel_name and user_id, then build the session.
         """
-        # SPOP is atomic – safe for concurrent connections
-        partner_channel = await redis.spop(WAITING_POOL_KEY)
+        my_entry    = _encode_pool_entry(self.channel_name, self.user.pk)
+        raw_partner = await redis.spop(WAITING_POOL_KEY)
 
-        if partner_channel and partner_channel != self.channel_name:
-            # --- We found a partner ---
+        if raw_partner and not raw_partner.startswith(self.channel_name + ":"):
+            # ── found a partner ──────────────────────────────────────────
+            partner_channel, partner_user_id = _decode_pool_entry(raw_partner)
+
             session_id    = str(uuid.uuid4())
             session_group = f"session_{session_id}"
 
@@ -87,47 +207,76 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             self.session_group   = session_group
             self.partner_channel = partner_channel
 
-            # Persist the session so both peers (and disconnect) can look it up
+            # Persist session metadata in Redis
             await redis.hset(
                 SESSION_KEY(session_id),
-                mapping={"peer1": partner_channel, "peer2": self.channel_name},
+                mapping={
+                    "peer1":         raw_partner,           # waiting peer (answerer)
+                    "peer2":         my_entry,              # arriving peer (offerer)
+                    "peer1_user_id": str(partner_user_id),
+                    "peer2_user_id": str(self.user.pk),
+                },
             )
-            await redis.expire(SESSION_KEY(session_id), 3600)  # 1-hour TTL
+            await redis.expire(SESSION_KEY(session_id), 3600)
 
-            # Both peers join the channel layer group
+            # CHANGE 2: create DB record
+            partner_user      = await _get_user(partner_user_id)
+            self.partner_user = partner_user
+            await _create_match_session(
+                session_uuid=uuid.UUID(session_id),
+                user_one=partner_user,      # peer1 = user_one (was waiting)
+                user_two=self.user,         # peer2 = user_two (arrived)
+            )
+
+            # Join channel layer group — both peers
             channel_layer = get_channel_layer()
             await self.channel_layer.group_add(session_group, self.channel_name)
             await channel_layer.group_add(session_group, partner_channel)
 
-            # Tell the partner they are matched (they are still in connect() / waiting)
+            # Notify the waiting peer (peer1 / answerer)
             await channel_layer.send(
                 partner_channel,
                 {
-                    "type": "peer.matched",
-                    "session_id": session_id,
-                    "session_group": session_group,
+                    "type":           "peer.matched",
+                    "session_id":     session_id,
+                    "session_group":  session_group,
+                    "is_offerer":     False,    # CHANGE 5: peer1 = answerer
+                    "partner_user_id": self.user.pk,
                 },
             )
             return True
+
         else:
-            # --- No one waiting, join the pool ---
-            await redis.sadd(WAITING_POOL_KEY, self.channel_name)
+            # ── no partner — join the pool ───────────────────────────────
+            if raw_partner:
+                # We popped our own entry (edge case on reconnect) — put it back
+                await redis.sadd(WAITING_POOL_KEY, raw_partner)
+            await redis.sadd(WAITING_POOL_KEY, my_entry)
             return False
 
-    # ------------------------------------------------------------------ #
-    #  Channel-layer event: peer.matched (sent TO the waiting peer)       #
-    # ------------------------------------------------------------------ #
+    # ── peer.matched  (channel-layer event → waiting peer) ───────────────
     async def peer_matched(self, event):
-        """Called on the *waiting* peer when the second peer connects and matches."""
-        self.session_id    = event["session_id"]
-        self.session_group = event["session_group"]
+        """
+        Received by peer1 (the one who was waiting).
+        CHANGE 5: forward is_offerer=False so the client knows to wait for the
+        offer rather than creating one.
+        """
+        self.session_id      = event["session_id"]
+        self.session_group   = event["session_group"]
+
+        # Look up partner user for any future use (reporting, etc.)
+        partner_user_id  = event.get("partner_user_id")
+        if partner_user_id:
+            self.partner_user = await _get_user(partner_user_id)
 
         await self.channel_layer.group_add(self.session_group, self.channel_name)
-        await self.send_json({"type": "matched", "session_id": self.session_id})
+        await self.send_json({
+            "type":       "matched",
+            "session_id": self.session_id,
+            "is_offerer": event.get("is_offerer", False),   # CHANGE 5
+        })
 
-    # ------------------------------------------------------------------ #
-    #  Receive from WebSocket client                                       #
-    # ------------------------------------------------------------------ #
+    # ── receive ──────────────────────────────────────────────────────────
     async def receive(self, text_data=None, bytes_data=None):
         if not text_data:
             return
@@ -140,16 +289,17 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
         msg_type = data.get("type")
 
+        # CHANGE 4: report_peer is handled locally — never relayed
+        if msg_type == "report_peer":
+            await self._handle_report()
+            return
+
         if not self.session_group:
             await self.send_json({"type": "error", "message": "Not yet matched"})
             return
 
-        # All recognised message types are forwarded to the session group.
-        # The receiver on the other end will call the appropriate handler.
         allowed_types = {
-            # WebRTC signaling
             "offer", "answer", "ice_candidate",
-            # Application-level shared messages
             "game_move", "sync", "chat", "custom",
         }
 
@@ -160,42 +310,63 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_send(
             self.session_group,
             {
-                "type":   f"session.{msg_type.replace('_', '.')}",   # e.g. session.ice.candidate
-                "sender": self.channel_name,
+                "type":    f"session.{msg_type.replace('_', '.')}",
+                "sender":  self.channel_name,
                 "payload": data,
             },
         )
 
-    # ------------------------------------------------------------------ #
-    #  Channel-layer → WebSocket forwarding                               #
-    #  One handler per allowed type; all do the same thing: forward to   #
-    #  the WebSocket *unless* this peer is the sender.                    #
-    # ------------------------------------------------------------------ #
+    # ── report handler ────────────────────────────────────────────────────
+    async def _handle_report(self):
+        """CHANGE 4: flag the DB session record and ack the reporter."""
+        if not self.session_id:
+            await self.send_json({"type": "error", "message": "No active session to report"})
+            return
+
+        try:
+            await _flag_report(
+                session_uuid=uuid.UUID(self.session_id),
+                reporter_user=self.user,
+            )
+            await self.send_json({"type": "report_ack", "session_id": self.session_id})
+            logger.info(
+                "Session %s reported by user %s", self.session_id, self.user.pk
+            )
+        except Exception as exc:
+            logger.exception("Error flagging report: %s", exc)
+            await self.send_json({"type": "error", "message": "Could not submit report"})
+
+    # ── channel-layer forwarding ──────────────────────────────────────────
     async def _forward(self, event):
         if event.get("sender") == self.channel_name:
-            return  # don't echo back to sender
+            return
         await self.send_json(event["payload"])
 
-    # Map channel-layer event types → handler
-    async def session_offer(self, event):           await self._forward(event)
-    async def session_answer(self, event):          await self._forward(event)
-    async def session_ice_candidate(self, event):   await self._forward(event)
-    async def session_game_move(self, event):       await self._forward(event)
-    async def session_sync(self, event):            await self._forward(event)
-    async def session_chat(self, event):            await self._forward(event)
-    async def session_custom(self, event):          await self._forward(event)
+    async def session_offer(self, event):          await self._forward(event)
+    async def session_answer(self, event):         await self._forward(event)
+    async def session_ice_candidate(self, event):  await self._forward(event)
+    async def session_game_move(self, event):      await self._forward(event)
+    async def session_sync(self, event):           await self._forward(event)
+    async def session_chat(self, event):           await self._forward(event)
+    async def session_custom(self, event):         await self._forward(event)
 
-    # ------------------------------------------------------------------ #
-    #  Disconnect                                                          #
-    # ------------------------------------------------------------------ #
+    # ── disconnect ───────────────────────────────────────────────────────
     async def disconnect(self, close_code):
         redis = get_redis()
         try:
-            # Case 1: user was still waiting – remove from pool
-            await redis.srem(WAITING_POOL_KEY, self.channel_name)
+            # Remove from pool if still waiting (encoded entry)
+            if hasattr(self, "user") and self.user.is_authenticated:
+                my_entry = _encode_pool_entry(self.channel_name, self.user.pk)
+                await redis.srem(WAITING_POOL_KEY, my_entry)
 
-            # Case 2: user was in a session – notify partner and clean up
             if self.session_id and self.session_group:
+                # CHANGE 3: close the DB record
+                try:
+                    await _close_match_session(uuid.UUID(self.session_id))
+                except Exception as exc:
+                    logger.exception("Error closing match session in DB: %s", exc)
+
+                # Notify partner
                 await self.channel_layer.group_send(
                     self.session_group,
                     {
@@ -204,25 +375,26 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                         "payload": {"type": "peer_left"},
                     },
                 )
-                await self.channel_layer.group_discard(self.session_group, self.channel_name)
+                await self.channel_layer.group_discard(
+                    self.session_group, self.channel_name
+                )
                 await redis.delete(SESSION_KEY(self.session_id))
+
         except Exception as exc:
             logger.exception("Error during disconnect cleanup: %s", exc)
         finally:
             await redis.aclose()
 
     async def session_peer_left(self, event):
-        """Partner disconnected – notify this client."""
         if event.get("sender") != self.channel_name:
             await self.send_json({"type": "peer_left"})
-            # Clean up this peer's group membership too
             if self.session_group:
-                await self.channel_layer.group_discard(self.session_group, self.channel_name)
+                await self.channel_layer.group_discard(
+                    self.session_group, self.channel_name
+                )
             self.session_id    = None
             self.session_group = None
 
-    # ------------------------------------------------------------------ #
-    #  Helper                                                              #
-    # ------------------------------------------------------------------ #
+    # ── helper ───────────────────────────────────────────────────────────
     async def send_json(self, content):
         await self.send(text_data=json.dumps(content))
