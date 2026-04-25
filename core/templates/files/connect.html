@@ -947,10 +947,26 @@
     onPeerLeft() {
       remoteVideo.srcObject = null;
       remotePlaceholder.style.display = '';
-      remotePlaceholder.querySelector('span').textContent = 'partner disconnected';
-      setStatus('online', 'partner left');
-      addLog('Partner disconnected', 'warn');
-      showToast('Partner left the session', 'warn');
+      remotePlaceholder.querySelector('span').textContent = 'skipping...';
+
+      setStatus('waiting', 'finding new partner...');
+      addLog('Partner disconnected → rematching', 'warn');
+      showToast('Skipping...', 'warn');
+
+      // Small delay so user sees feedback
+      setTimeout(() => {
+        // reset UI state
+        chatMessages.innerHTML = `
+          <div class="empty-chat" id="emptyChatState">
+            <i class="bi bi-chat-dots"></i>
+            <p>say hello to your partner</p>
+          </div>`;
+
+        sessionIdDisplay.textContent = '—';
+
+        MatchClient.rematch();
+        showPanel('waiting');
+      }, 1000);
     },
 
     onTrack(event) {

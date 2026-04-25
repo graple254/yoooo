@@ -91,6 +91,7 @@ const MatchClient = (() => {
     let sessionId        = null;
     let _isOfferer       = false;       // set from server "matched" message
     let _isReconnecting  = false;
+    let _connectionWatchdog = null;
 
     // FIX 2: candidate queue — filled while remoteDescription is null
     let _iceCandidateQueue = [];
@@ -261,6 +262,25 @@ const MatchClient = (() => {
             rtcpMuxPolicy:      "require",
         });
 
+        // ── Connection watchdog (12s timeout) ─────────────────────
+        if (_connectionWatchdog) {
+            clearTimeout(_connectionWatchdog);
+        }
+
+        _connectionWatchdog = setTimeout(() => {
+            // If still not connected → peer likely unreachable
+            if (!pc || !pc.iceConnectionState) return;
+
+            const state = pc.iceConnectionState;
+
+            if (state !== "connected" && state !== "completed") {
+                cfg.onError("Connection timeout — rematching");
+
+                // Trigger rematch
+                rematch();
+            }
+        }, 12000);
+
         // Trickle ICE — send each candidate as it's gathered
         pc.onicecandidate = ({ candidate }) => {
             if (candidate) _send({ type: "ice_candidate", candidate: candidate.toJSON() });
@@ -269,10 +289,21 @@ const MatchClient = (() => {
         pc.oniceconnectionstatechange = () => {
             const state = pc.iceConnectionState;
             cfg.onIceState(state);
-            if (state === "failed") {
-                cfg.onError("ICE connection failed — try rematching or check TURN config");
+
+            // SUCCESS → cancel watchdog
+            if (state === "connected" || state === "completed") {
+                if (_connectionWatchdog) {
+                    clearTimeout(_connectionWatchdog);
+                    _connectionWatchdog = null;
+                }
             }
-        };
+
+            // FAILURE → immediate rematch
+            if (state === "failed" || state === "disconnected") {
+                cfg.onError("ICE failed — rematching");
+                rematch();
+            }
+};
 
         pc.ontrack       = (e) => cfg.onTrack(e);
         pc.ondatachannel = (e) => cfg.onDataChannel(e.channel);
@@ -324,6 +355,10 @@ const MatchClient = (() => {
     }
 
     function _closePeerConnection() {
+        if (_connectionWatchdog) {
+            clearTimeout(_connectionWatchdog);
+            _connectionWatchdog = null;
+        }
         _iceCandidateQueue = [];
         if (pc) {
             pc.onicecandidate            = null;

@@ -51,6 +51,10 @@ User = get_user_model()
 WAITING_POOL_KEY = "matchmaking:waiting_pool"   # Redis Set
 SESSION_KEY      = lambda sid: f"session:{sid}" # Redis Hash
 
+# ── Presence keys ─────────────────────────────────────────────────────────────
+ONLINE_COUNT_KEY = "presence:online_count"  # Redis String  – total WS connections
+ONLINE_USERS_KEY = "presence:online_users"  # Redis Set     – authenticated user IDs
+
 
 def get_redis():
     url = getattr(settings, "REDIS_URL", "redis://127.0.0.1:6379")
@@ -174,6 +178,14 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
         redis = get_redis()
         try:
+            # ── Task 1: presence tracking ─────────────────────────────────
+            # INCR is atomic — safe for concurrent connections.
+            # Pipeline sends both commands in one round-trip.
+            async with redis.pipeline(transaction=False) as pipe:
+                pipe.incr(ONLINE_COUNT_KEY)
+                pipe.sadd(ONLINE_USERS_KEY, str(self.user.pk))
+                await pipe.execute()
+
             matched = await self._try_match(redis)
             if matched:
                 await self.send_json({
@@ -354,6 +366,21 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         redis = get_redis()
         try:
+            # ── Task 1: presence cleanup ──────────────────────────────────
+            # DECR can go negative if the server restarts mid-session;
+            # we clamp to 0 with a Lua script to keep the counter honest.
+            if hasattr(self, "user") and self.user.is_authenticated:
+                async with redis.pipeline(transaction=False) as pipe:
+                    # Decrement but floor at 0
+                    pipe.eval(
+                        "local v = redis.call('decr', KEYS[1]); "
+                        "if v < 0 then redis.call('set', KEYS[1], 0) end; "
+                        "return v",
+                        1, ONLINE_COUNT_KEY,
+                    )
+                    pipe.srem(ONLINE_USERS_KEY, str(self.user.pk))
+                    await pipe.execute()
+
             # Remove from pool if still waiting (encoded entry)
             if hasattr(self, "user") and self.user.is_authenticated:
                 my_entry = _encode_pool_entry(self.channel_name, self.user.pk)

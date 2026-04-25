@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-_&#99syx33)#f5oy=-acs8a3!_0lys*-2pz@^*#)b2a6xoz+t#
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['https://ab3b-102-209-76-98.ngrok-free.app']
+CSRF_TRUSTED_ORIGINS = ['https://07a0-102-209-76-98.ngrok-free.app']
 
 # Application definition
 
@@ -61,6 +61,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'core.middleware.ActivityTrackingMiddleware',
 
     'allauth.account.middleware.AccountMiddleware',
 
@@ -117,6 +118,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # ── new ──
+                "core.context_processors.online_stats",
             ],
         },
     },
@@ -124,6 +127,27 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'chichi.wsgi.application'
 
+# ── 3. Cache backend (use Redis so online_stats cache survives process restarts)
+# If you don't have django-redis installed, LocMemCache (Django's default) also
+# works but is per-process — each Daphne worker will have its own cache.
+# pip install django-redis
+CACHES = {
+    "default": {
+        "BACKEND":  "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6380/1",   # DB 1 — keep separate from channel layer
+        "OPTIONS":  {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+    }
+}
+ 
+# ── 4. Optional tuning knobs ──────────────────────────────────────────────────
+ACTIVITY_SKIP_PATHS  = ["/static/", "/media/", "/favicon"]  # paths NOT logged
+ACTIVITY_GEO_TIMEOUT = 4       # ip-api.com request timeout in seconds
+ACTIVITY_CACHE_TTL   = 86_400  # geo-location cache TTL (24 h)
+ONLINE_STATS_CACHE_TTL = 30    # seconds context processor caches Redis reads
+ 
+# ── 5. Hourly snapshot — cron example (no Celery needed) ─────────────────────
+# Add to your server's crontab:
+#   0 * * * * /path/to/venv/bin/python /path/to/project/manage.py snapshot_traffic
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
