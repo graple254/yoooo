@@ -1099,6 +1099,184 @@
     flex-direction: column;
   }
 }
+
+/* ── TERMS AND POLICY MODAL ────────────────────────────────────────────────── */
+.terms-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.terms-backdrop.show {
+  display: flex;
+}
+
+.terms-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 2rem;
+  animation: slideIn 0.3s cubic-bezier(0.34, 1.3, 0.64, 1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.terms-modal h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #111111;
+}
+
+.terms-modal p {
+  color: #666666;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.terms-content {
+  background: #f9f9f9;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  color: #555555;
+  line-height: 1.6;
+  border: 1px solid #e5e5e5;
+}
+
+.terms-content h4 {
+  font-weight: 600;
+  color: #111111;
+  margin: 1rem 0 0.5rem;
+  font-size: 0.9rem;
+}
+
+.terms-content ul {
+  margin-left: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.terms-content li {
+  margin-bottom: 0.5rem;
+}
+
+.terms-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #111111;
+}
+
+.checkbox-group label {
+  flex: 1;
+  font-size: 0.9rem;
+  color: #333333;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.checkbox-group input[type="checkbox"]:hover {
+  opacity: 0.8;
+}
+
+.terms-error {
+  background: #fee;
+  color: #c33;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  border-left: 3px solid #c33;
+  display: none;
+}
+
+.terms-error.show {
+  display: block;
+}
+
+.terms-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-terms-cancel {
+  padding: 10px 24px;
+  border-radius: 30px;
+  border: 1px solid #e5e5e5;
+  background: white;
+  color: #111111;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-terms-cancel:hover {
+  background: #f5f5f5;
+}
+
+.btn-terms-accept {
+  padding: 10px 24px;
+  border-radius: 30px;
+  border: none;
+  background: #111111;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-terms-accept:hover {
+  background: #333333;
+}
+
+.btn-terms-accept:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
   </style>
 </head>
 <body>
@@ -1377,6 +1555,62 @@
   </div>
 </div>
 
+<!-- ── TERMS AND POLICY MODAL ─────────────────────────────────────────────── -->
+<div class="terms-backdrop" id="termsBackdrop">
+  <div class="terms-modal">
+    <h2>Welcome to Chichi! 👋</h2>
+    <p>Before you can start connecting, please review and accept our terms.</p>
+    
+    <div class="terms-content">
+      <h4>Terms and Conditions</h4>
+      <p>By using Chichi, you agree to use the platform responsibly and respect all users. We have a zero-tolerance policy for harassment, hate speech, or any form of abuse.</p>
+      
+      <h4>Acceptable Use Policy</h4>
+      <ul>
+        <li>No harassment, hate speech, or discrimination</li>
+        <li>No sharing of personal information without consent</li>
+        <li>No recording or screenshotting without permission</li>
+        <li>No commercial solicitation or spam</li>
+        <li>Respect all users regardless of background</li>
+      </ul>
+      
+      <h4>Age Requirement</h4>
+      <p>You must be at least 18 years old to use this service.</p>
+      
+      <h4>Privacy & Communications</h4>
+      <p>We may send you service updates and promotional content. You can manage your preferences in settings at any time.</p>
+    </div>
+
+    <div class="terms-error" id="termsError"></div>
+
+    <div class="terms-checkboxes">
+      <div class="checkbox-group">
+        <input type="checkbox" id="termsCheckbox" name="terms_and_conditions">
+        <label for="termsCheckbox">
+          I agree to the Terms and Conditions and Acceptable Use Policy
+        </label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="ageCheckbox" name="age_confirmation">
+        <label for="ageCheckbox">
+          I confirm that I am at least 18 years old
+        </label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="promotionalCheckbox" name="promotional_emails">
+        <label for="promotionalCheckbox">
+          I agree to receive promotional emails and updates (optional)
+        </label>
+      </div>
+    </div>
+
+    <div class="terms-actions">
+      <button class="btn-terms-cancel" id="termsCancelBtn">Cancel</button>
+      <button class="btn-terms-accept" id="termsAcceptBtn" disabled>Accept & Continue</button>
+    </div>
+  </div>
+</div>
+
 <script src="{% static 'files/match_client.js' %}"></script>
 <script src="{% static 'files/games/three_mens_morris.js' %}"></script>
 <script src="{% static 'files/games/tic_tac_toe.js' %}"></script>
@@ -1387,7 +1621,11 @@
   // Render Lucide icons
   lucide.createIcons();
 
-  // ── DOM refs ──────────────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════════════
+     DOM REFERENCES
+     ════════════════════════════════════════════════════════════════════════════════ */
+
+  // ── Panel & Display Elements ──────────────────────────────────────────────────
   const panelIdle        = document.getElementById('panelIdle');
   const panelWaiting     = document.getElementById('panelWaiting');
   const panelMatched     = document.getElementById('panelMatched');
@@ -1396,41 +1634,199 @@
   const statusText       = document.getElementById('statusText');
   const sessionIdDisplay = document.getElementById('sessionIdDisplay');
   const waitingSessionId = document.getElementById('waitingSessionId');
-  const localVideo       = document.getElementById('localVideo');
-  const remoteVideo      = document.getElementById('remoteVideo');
-  const localPlaceholder = document.getElementById('localPlaceholder');
-  const remotePlaceholder= document.getElementById('remotePlaceholder');
-  const localCard        = document.getElementById('localCard');
-  const remoteCard       = document.getElementById('remoteCard');
+
+  // ── Video & Stream Elements ───────────────────────────────────────────────────
+  const localVideo        = document.getElementById('localVideo');
+  const remoteVideo       = document.getElementById('remoteVideo');
+  const localPlaceholder  = document.getElementById('localPlaceholder');
+  const remotePlaceholder = document.getElementById('remotePlaceholder');
+  const localCard         = document.getElementById('localCard');
+  const remoteCard        = document.getElementById('remoteCard');
+
+  // ── Chat & Communication ──────────────────────────────────────────────────────
   const logMessages      = document.getElementById('logMessages');
   const chatMessages     = document.getElementById('chatMessages');
   const chatInput        = document.getElementById('chatInput');
   const chatSendBtn      = document.getElementById('chatSendBtn');
   const gameBoardArea    = document.getElementById('gameBoardArea');
+
+  // ── UI Controls ───────────────────────────────────────────────────────────────
   const fabStack         = document.getElementById('fabStack');
 
-  // Report refs
+  // ── Report Modal ──────────────────────────────────────────────────────────────
   const btnReport        = document.getElementById('btnReport');
   const reportBackdrop   = document.getElementById('reportBackdrop');
   const reportCancelBtn  = document.getElementById('reportCancelBtn');
   const reportConfirmBtn = document.getElementById('reportConfirmBtn');
 
-  // Countdown refs
+  // ── Terms & Policy Modal ──────────────────────────────────────────────────────
+  const termsBackdrop       = document.getElementById('termsBackdrop');
+  const termsCheckbox       = document.getElementById('termsCheckbox');
+  const ageCheckbox         = document.getElementById('ageCheckbox');
+  const promotionalCheckbox = document.getElementById('promotionalCheckbox');
+  const termsAcceptBtn      = document.getElementById('termsAcceptBtn');
+  const termsCancelBtn      = document.getElementById('termsCancelBtn');
+  const termsError          = document.getElementById('termsError');
+  const hasAgreedToTerms    = {{ has_agreed_to_terms|lower }};
+
+  // ── Countdown & Game Result ───────────────────────────────────────────────────
   const countdownOverlay = document.getElementById('countdownOverlay');
   const countdownNumber  = document.getElementById('countdownNumber');
-
-  // Game result banner
   const gameResultBanner = document.getElementById('gameResultBanner');
   const gameResultTitle  = document.getElementById('gameResultTitle');
   const gameResultSub    = document.getElementById('gameResultSub');
 
-  // ── State ─────────────────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════════════
+     APPLICATION STATE
+     ════════════════════════════════════════════════════════════════════════════════ */
+
   let cameraStream = null;
   let cameraOn     = false;
   let hasReported  = false;
   let gameActive   = false;
   let countdownTimer = null;
   let _localResultShown = false;   // prevents onGameResult overwriting local engine result
+
+  /* ════════════════════════════════════════════════════════════════════════════════
+     TERMS & POLICY AGREEMENT SYSTEM
+     ════════════════════════════════════════════════════════════════════════════════
+     
+     Handles user acceptance of:
+     - Consumer Terms and Acceptable Use Policy
+     - Age Confirmation (18+ years old)
+     - Promotional Email Opt-in
+     
+     User must accept Terms and Age Confirmation before proceeding.
+     Promotional emails are optional.
+  */
+
+  /**
+   * Validates that user has checked required terms (terms and age confirmation).
+   * Disables accept button if requirements not met.
+   */
+  function checkTermsValidation() {
+    const termsValid = termsCheckbox.checked;
+    const ageValid = ageCheckbox.checked;
+    termsAcceptBtn.disabled = !(termsValid && ageValid);
+  }
+
+  /**
+   * Displays the Terms & Policy modal on page load if user hasn't already accepted.
+   * This is a blocking modal — user cannot proceed without accepting.
+   */
+  function showTermsModal() {
+    if (!hasAgreedToTerms) {
+      termsBackdrop.classList.add('show');
+    }
+  }
+
+  /**
+   * Hides the Terms & Policy modal. Called after successful submission.
+   */
+  function hideTermsModal() {
+    termsBackdrop.classList.remove('show');
+  }
+
+  /**
+   * Submits the user's terms acceptance to the server via POST.
+   * Collects checkbox states for:
+   * - terms_and_conditions (required)
+   * - age_confirmation (required)
+   * - promotional_emails (optional)
+   */
+  async function submitTermsAndPolicy() {
+    const formData = new FormData();
+    formData.append('terms_and_conditions', termsCheckbox.checked ? 'on' : 'off');
+    formData.append('age_confirmation', ageCheckbox.checked ? 'on' : 'off');
+    formData.append('promotional_emails', promotionalCheckbox.checked ? 'on' : 'off');
+
+    try {
+      const response = await fetch('{% url "accept_terms" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': getCookie('csrftoken'),
+        }
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        hideTermsModal();
+        showToast('Terms accepted! Welcome to Chichi 🎉', 'success');
+      } else {
+        showError(data.message || 'Failed to accept terms');
+      }
+    } catch (error) {
+      console.error('Error submitting terms:', error);
+      showError('An error occurred. Please try again.');
+    }
+  }
+
+  /**
+   * Displays error message in the terms modal for 3 seconds.
+   */
+  function showError(message) {
+    termsError.textContent = message;
+    termsError.classList.add('show');
+    setTimeout(() => termsError.classList.remove('show'), 3000);
+  }
+
+  /**
+   * Utility: Retrieves CSRF token from browser cookies.
+   * Required for Django form submissions.
+   */
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════════════
+     TERMS & POLICY EVENT LISTENERS
+     ════════════════════════════════════════════════════════════════════════════════ */
+
+  // Validate checkbox states when user interacts
+  termsCheckbox.addEventListener('change', checkTermsValidation);
+  ageCheckbox.addEventListener('change', checkTermsValidation);
+
+  // Handle Accept button click
+  termsAcceptBtn.addEventListener('click', async () => {
+    termsAcceptBtn.disabled = true;
+    termsAcceptBtn.textContent = 'Accepting...';
+    await submitTermsAndPolicy();
+    if (hasAgreedToTerms) {
+      termsAcceptBtn.disabled = false;
+      termsAcceptBtn.textContent = 'Accept & Continue';
+    }
+  });
+
+  // Handle Cancel button click (mainly for clearing error state)
+  termsCancelBtn.addEventListener('click', () => {
+    // User cannot proceed without accepting terms, so this mainly clears error
+    termsError.classList.remove('show');
+  });
+
+  // Prevent dismissing modal by clicking backdrop
+  termsBackdrop.addEventListener('click', e => {
+    if (e.target === termsBackdrop) {
+      e.preventDefault();
+    }
+  });
+
+  // Show terms modal on page load if user hasn't accepted
+  document.addEventListener('DOMContentLoaded', () => {
+    showTermsModal();
+  });
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function showPanel(name) {
@@ -1807,7 +2203,19 @@
     });
   }
 
-  // ── MatchClient callbacks ─────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════════════
+     WEBSOCKET & MATCH CLIENT CONFIGURATION
+     ════════════════════════════════════════════════════════════════════════════════
+     
+     Configures the WebSocket connection and handles all real-time events:
+     - Waiting and matching state
+     - Peer connection & disconnection
+     - Remote video stream
+     - Game invitations and moves
+     - Chat messages
+     - Error handling
+  */
+
   MatchClient.configure({
 
     onWaiting() {
@@ -1924,7 +2332,15 @@
     },
   });
 
-  // ── Chat ──────────────────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════════════
+     CHAT SYSTEM (MAIN & GAME MODE)
+     ════════════════════════════════════════════════════════════════════════════════
+     
+     Dual-view chat:
+     - Main chat panel (always visible in matched state)
+     - Game chat overlay (floating during game mode)
+  */
+
   const gameChatOverlay  = document.getElementById('gameChatOverlay');
   const gameChatMessages = document.getElementById('gameChatMessages');
   const gameChatInput    = document.getElementById('gameChatInput');
@@ -1979,7 +2395,7 @@
     }
   });
 
-  // ── Tab switching ─────────────────────────────────────────────────────────
+  // ── Chat & Log Tab Switching ─────────────────────────────────────────────────
   document.querySelectorAll('.chat-tab').forEach(tab => {
     tab.addEventListener('click', function () {
       document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
@@ -1990,7 +2406,11 @@
     });
   });
 
-  // ── Action buttons (normal mode) ──────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════════════
+     USER INTERFACE CONTROLS & EVENT HANDLERS
+     ════════════════════════════════════════════════════════════════════════════════ */
+
+  // ── Main Control Buttons ──────────────────────────────────────────────────────
   document.getElementById('btnConnect').addEventListener('click', () => {
     setStatus('waiting', 'connecting...');
     addLog('Connecting...', 'info');
@@ -2059,7 +2479,7 @@
   document.getElementById('btnRematch').addEventListener('click', doRematch);
   document.getElementById('btnLeave').addEventListener('click', doLeave);
 
-  // ── FAB buttons (game mode) ────────────────────────────────────────────────
+  // ── Floating Action Buttons (FABs) ───────────────────────────────────────────
   document.getElementById('fabRematch').addEventListener('click', doRematch);
   document.getElementById('fabLeave').addEventListener('click', doLeave);
 
@@ -2068,7 +2488,7 @@
     openReportModal();
   });
 
-  // ── Game result banner buttons ─────────────────────────────────────────────
+  // ── Game Result Banner Buttons ───────────────────────────────────────────────
   document.getElementById('resultRematch').addEventListener('click', doRematch);
   document.getElementById('resultStay').addEventListener('click', () => {
     deactivateGameMode();
@@ -2176,7 +2596,11 @@
     };
   })();
 
-  // ── Year ──────────────────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════════════
+     MISCELLANEOUS
+     ════════════════════════════════════════════════════════════════════════════════ */
+
+  // ── Footer Year ───────────────────────────────────────────────────────────────
   document.getElementById('year').textContent = new Date().getFullYear();
 </script>
 
