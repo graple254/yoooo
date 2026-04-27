@@ -14,7 +14,7 @@ SECRET_KEY = 'django-insecure-_&#99syx33)#f5oy=-acs8a3!_0lys*-2pz@^*#)b2a6xoz+t#
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['https://3eb7-102-209-76-98.ngrok-free.app']
+CSRF_TRUSTED_ORIGINS = ['https://bfd8-102-209-76-98.ngrok-free.app']
 
 # Application definition
 
@@ -207,6 +207,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 # The URL to redirect to after a successful login if no "next" parameter is present
-LOGIN_REDIRECT_URL = 'home' 
+LOGIN_REDIRECT_URL = 'connect' 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

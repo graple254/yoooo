@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231a1a1a'/%3E%3Ctext x='50' y='68' text-anchor='middle' fill='white' font-size='48' font-family='system-ui, sans-serif' font-weight='600'%3Ech%3C/text%3E%3C/svg%3E">
+  <title>chichi · meet a stranger, play a game</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #e8e0d0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Courier New', Roboto, Helvetica, Arial, sans-serif;
+      color: #1a1a1a;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* dorm wall background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: 
+        repeating-linear-gradient(45deg, rgba(180, 160, 130, 0.15) 0px, rgba(180, 160, 130, 0.15) 1px, transparent 1px, transparent 12px),
+        repeating-linear-gradient(135deg, rgba(140, 120, 90, 0.08) 0px, rgba(140, 120, 90, 0.08) 1px, transparent 1px, transparent 8px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* main container - centers the notebook */
+    .desk {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ========= NOTEBOOK ========= */
+    .notebook {
+      width: 500px;
+      max-width: 90%;
+      background: #fef8e7;
+      border-radius: 8px 12px 12px 8px;
+      box-shadow: 
+        20px 20px 40px rgba(0,0,0,0.2),
+        inset -1px 0 0 rgba(0,0,0,0.05),
+        inset 0 -1px 0 rgba(0,0,0,0.05);
+      position: relative;
+      transition: transform 0.3s ease;
+    }
+
+    .notebook:hover {
+      transform: translateY(-4px);
+    }
+
+    /* spiral binding */
+    .notebook::before {
+      content: '';
+      position: absolute;
+      left: -12px;
+      top: 20px;
+      bottom: 20px;
+      width: 24px;
+      background: repeating-linear-gradient(
+        to bottom,
+        #c0b090 0px,
+        #c0b090 8px,
+        #a09070 8px,
+        #a09070 16px
+      );
+      border-radius: 12px 0 0 12px;
+      box-shadow: inset -1px 0 0 rgba(0,0,0,0.1);
+    }
+
+    /* notebook cover edge */
+    .notebook::after {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 10px;
+      bottom: 10px;
+      width: 6px;
+      background: #2a2010;
+      border-radius: 3px;
+      opacity: 0.3;
+    }
+
+    /* notebook inner content */
+    .notebook-inner {
+      padding: 2rem 2rem 2rem 2.5rem;
+      position: relative;
+    }
+
+    /* ruled lines */
+    .notebook-inner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 28px,
+        rgba(100, 80, 60, 0.08) 28px,
+        rgba(100, 80, 60, 0.08) 29px
+      );
+      pointer-events: none;
+    }
+
+    /* red margin line */
+    .notebook-inner::after {
+      content: '';
+      position: absolute;
+      left: 48px;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: rgba(220, 80, 60, 0.3);
+      pointer-events: none;
+    }
+
+    /* logo / header on notebook */
+    .notebook-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      border-bottom: 1px dashed #d0c8b0;
+      padding-bottom: 0.5rem;
+    }
+
+    .notebook-logo {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #1a1a1a;
+      font-family: 'Courier New', monospace;
+    }
+
+    .notebook-date {
+      font-size: 0.65rem;
+      color: #a09070;
+      font-family: monospace;
+    }
+
+    /* handwritten style text */
+    .handwritten {
+      font-family: 'Courier New', 'Segoe UI', monospace;
+    }
+
+    .notebook-title {
+      font-size: 1.8rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #1a1a1a;
+      letter-spacing: -0.5px;
+    }
+
+    .notebook-sub {
+      font-size: 0.75rem;
+      color: #7a6a50;
+      margin-bottom: 1.5rem;
+      font-style: italic;
+    }
+
+    .feature-list {
+      margin: 1.5rem 0;
+      list-style: none;
+      padding-left: 1.5rem;
+    }
+
+    .feature-list li {
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      color: #2a2a2a;
+    }
+
+    .feature-list li i {
+      font-size: 1.1rem;
+      color: #5a4a30;
+      width: 24px;
+    }
+
+    .divider-line {
+      margin: 1.5rem 0;
+      border-top: 1px dashed #d0c8b0;
+    }
+
+    .cta-notebook {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .btn-notebook {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1a1a;
+      color: #fef8e7;
+      padding: 10px 24px;
+      border-radius: 40px;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-notebook:hover {
+      background: #3a3a3a;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline-notebook {
+      background: transparent;
+      border: 1px solid #1a1a1a;
+      color: #1a1a1a;
+    }
+
+    .btn-outline-notebook:hover {
+      background: #1a1a1a;
+      color: #fef8e7;
+    }
+
+    /* ========= STICKY NOTES ON WALL ========= */
+    .sticky-wall {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .sticky {
+      position: absolute;
+      background: #fef3c7;
+      padding: 8px 12px;
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: #854d0e;
+      box-shadow: 2px 3px 8px rgba(0,0,0,0.1);
+      border-radius: 2px;
+      font-family: 'Courier New', monospace;
+      max-width: 140px;
+      text-align: center;
+      transform-origin: center;
+      pointer-events: none;
+    }
+    .sticky::after {
+      content: "📌";
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      opacity: 0.6;
+    }
+
+    .sticky.pink { background: #fce7f3; color: #9d174d; }
+    .sticky.green { background: #dcfce7; color: #166534; }
+    .sticky.blue { background: #dbeafe; color: #1e40af; }
+    .sticky.purple { background: #f3e8ff; color: #6b21a5; }
+
+    /* polaroid */
+    .polaroid {
+      position: absolute;
+      background: white;
+      padding: 6px 6px 12px 6px;
+      box-shadow: 3px 5px 12px rgba(0,0,0,0.12);
+      transform: rotate(4deg);
+      text-align: center;
+      font-size: 0.55rem;
+      color: #666;
+      width: 85px;
+      font-family: monospace;
+    }
+    .polaroid .polaroid-img {
+      width: 73px;
+      height: 73px;
+      background: #e2e8f0;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+
+    /* chalk text */
+    .chalk-text {
+      position: absolute;
+      color: #cbd5e1;
+      font-family: 'Courier New', monospace;
+      font-size: 0.65rem;
+      transform: rotate(-3deg);
+      opacity: 0.5;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    @media (max-width: 650px) {
+      .sticky-wall {
+        display: none;
+      }
+      .desk {
+        padding: 1rem;
+      }
+      .notebook {
+        width: 95%;
+      }
+      .notebook-inner {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- STICKY NOTES WALL (background decorations) -->
+<div class="sticky-wall">
+  <!-- various sticky notes -->
+  <div class="sticky pink" style="top: 8%; left: 5%; transform: rotate(-5deg);">✨ be yourself ✨</div>
+  <div class="sticky green" style="top: 15%; right: 6%; transform: rotate(8deg);">🎮 play games 🎮</div>
+  <div class="sticky blue" style="bottom: 20%; left: 3%; transform: rotate(-3deg);">💬 say hi 💬</div>
+  <div class="sticky purple" style="bottom: 35%; right: 8%; transform: rotate(6deg);">🔥 no pressure 🔥</div>
+  <div class="sticky" style="top: 35%; left: 2%; transform: rotate(4deg);">meet strangers</div>
+  <div class="sticky pink" style="top: 65%; right: 4%; transform: rotate(-7deg);">video chat</div>
+  <div class="sticky green" style="top: 80%; left: 8%; transform: rotate(3deg);">tic tac toe</div>
+  <div class="sticky blue" style="top: 45%; right: 12%; transform: rotate(-4deg);">3 men's morris</div>
+  <div class="sticky purple" style="bottom: 50%; left: 12%; transform: rotate(5deg);">no ghosting 🤝</div>
+
+  <!-- polaroid photos -->
+  <div class="polaroid" style="top: 12%; left: 12%; transform: rotate(-6deg);">
+    <div class="polaroid-img">🎉</div>
+    <span>good times</span>
+  </div>
+  <div class="polaroid" style="bottom: 15%; right: 12%; transform: rotate(8deg);">
+    <div class="polaroid-img">🎮</div>
+    <span>game night</span>
+  </div>
+
+  <!-- chalk scribbles -->
+  <div class="chalk-text" style="top: 22%; left: 18%;">→ meet new people</div>
+  <div class="chalk-text" style="bottom: 28%; right: 18%; transform: rotate(2deg);">play to connect →</div>
+  <div class="chalk-text" style="top: 55%; left: 15%; transform: rotate(-4deg);">no algorithms, just vibes</div>
+  <div class="chalk-text" style="top: 75%; right: 22%; transform: rotate(3deg);">strangers > friends</div>
+</div>
+
+<!-- MAIN CONTENT: NOTEBOOK -->
+<div class="desk">
+  <div class="notebook">
+    <div class="notebook-inner">
+      <div class="notebook-header">
+        <div class="notebook-logo">chichi</div>
+        <div class="notebook-date">today's entry</div>
+      </div>
+
+      <div class="notebook-title handwritten">
+        meet a stranger.<br>
+        play a game.
+      </div>
+      <div class="notebook-sub">— no awkward silences edition</div>
+
+      <ul class="feature-list">
+        <li><i class="bi bi-people-fill"></i> <span>Connect with a random human</span></li>
+        <li><i class="bi bi-controller"></i> <span>Break the ice with board games</span></li>
+        <li><i class="bi bi-camera-video-fill"></i> <span>Video + chat (camera optional)</span></li>
+        <li><i class="bi bi-lightning-charge-fill"></i> <span>Instant matches. Zero friction.</span></li>
+        <li><i class="bi bi-box-arrow-right"></i> <span>Leave whenever. No traces.</span></li>
+      </ul>
+
+      <div class="divider-line"></div>
+
+      <div class="cta-notebook">
+            
+        {% if not user.is_authenticated %}
+        <a href="{% url 'login' %}" class="btn-notebook btn-outline-notebook">
+          <i class="bi bi-person-circle"></i> Sign in
+        </a>
+        {% endif %}
+        <a href="{% url 'connect' %}" class="btn-notebook" target="_blank" rel="noopener noreferrer">
+          <i class="bi bi-broadcast"></i> Start Matching
+          <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+
+      <div class="notebook-sub" style="margin-top: 1.5rem; font-size: 0.6rem; text-align: center;">
+        <!-- fun little footer note -->
+        <i class="bi bi-chat-dots"></i> no profiles · no data · just vibes
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

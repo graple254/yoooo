@@ -869,6 +869,236 @@
     .game-result-banner h2 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
     .game-result-banner p  { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
     .game-result-banner .result-btns { display: flex; gap: 10px; justify-content: center; }
+
+/* NOTEBOOK STYLES - Option 1 */
+.notebook-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.notebook {
+  background: #fef8e7;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 8px 12px 12px 8px;
+  box-shadow: 15px 15px 30px rgba(0,0,0,0.15), inset -1px 0 0 rgba(0,0,0,0.05);
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.notebook:hover {
+  transform: translateY(-4px);
+}
+
+.spiral-binder {
+  position: absolute;
+  left: -12px;
+  top: 20px;
+  bottom: 20px;
+  width: 24px;
+  background: repeating-linear-gradient(
+    to bottom,
+    #c0b090 0px,
+    #c0b090 8px,
+    #a09070 8px,
+    #a09070 16px
+  );
+  border-radius: 12px 0 0 12px;
+  box-shadow: inset -1px 0 0 rgba(0,0,0,0.1);
+}
+
+.notebook-page {
+  padding: 2rem 2rem 2rem 2.5rem;
+  position: relative;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 28px,
+    rgba(120, 90, 60, 0.06) 28px,
+    rgba(120, 90, 60, 0.06) 29px
+  );
+}
+
+.notebook-page::before {
+  content: '';
+  position: absolute;
+  left: 48px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(220, 80, 60, 0.25);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.7rem;
+  color: #8a7a60;
+  border-bottom: 1px dashed #d4c8b0;
+  padding-bottom: 0.5rem;
+}
+
+.page-title { font-weight: 700; font-size: 0.9rem; color: #2a2a2a; }
+
+.handwritten-title {
+  font-size: 2rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  color: #1a1a1a;
+  margin: 1.5rem 0 1rem;
+  line-height: 1.2;
+}
+
+.handwritten-body {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #4a4a4a;
+  line-height: 1.6;
+  margin: 1rem 0;
+}
+
+.highlight-box {
+  background: #fef3c7;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  font-size: 0.8rem;
+  font-family: monospace;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-left: 3px solid #f59e0b;
+}
+
+.btn-notebook {
+  background: #1a1a1a;
+  color: #fef8e7;
+  padding: 12px 28px;
+  border-radius: 40px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  margin: 1rem 0;
+}
+
+.btn-notebook:hover {
+  background: #3a3a3a;
+  transform: translateY(-2px);
+}
+
+.page-footer {
+  text-align: center;
+  font-size: 0.6rem;
+  color: #aaa080;
+  font-family: monospace;
+  margin-top: 1.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #d4c8b0;
+}
+
+@media (max-width: 550px) {
+  .notebook-page { padding: 1.2rem; }
+  .handwritten-title { font-size: 1.5rem; }
+  .notebook-container { padding: 10px; }
+}
+
+/* ── GREETING STICKY NOTE (pinned to notebook) ───────────────────────────── */
+.greeting-sticky {
+  position: absolute;
+  top: -20px;
+  right: -15px;
+  background: #fef3c7;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 4px 6px 12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
+  transform: rotate(6deg);
+  z-index: 10;
+  min-width: 130px;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.greeting-sticky:hover {
+  transform: rotate(3deg) scale(1.02);
+}
+
+.sticky-pin-greeting {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  background: #dc2626;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+.sticky-pin-greeting::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 6px;
+  background: #8b4513;
+}
+
+.greeting-emoji {
+  font-size: 1.2rem;
+  margin-bottom: 2px;
+}
+
+.greeting-text {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #854d0e;
+  font-family: 'Courier New', monospace;
+}
+
+.greeting-text strong {
+  font-weight: 700;
+  color: #5a3a10;
+}
+
+.greeting-sub {
+  font-size: 0.65rem;
+  color: #a07a30;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 550px) {
+  .greeting-sticky {
+    position: relative;
+    top: -10px;
+    right: auto;
+    left: 0;
+    transform: rotate(2deg);
+    margin-bottom: 1rem;
+    max-width: 90%;
+  }
+  
+  .greeting-sticky:hover {
+    transform: rotate(1deg);
+  }
+  
+  .notebook-page {
+    display: flex;
+    flex-direction: column;
+  }
+}
   </style>
 </head>
 <body>
@@ -884,19 +1114,62 @@
     </div>
   </div>
 
-  <!-- ── IDLE PANEL ──────────────────────────────────────────────────────── -->
+  <!-- ── IDLE PANEL ──────────────────────────────────────────────────────── -->  
+   <!-- ── IDLE PANEL (SPIRAL NOTEBOOK with GREETING STICKY NOTE) ───────────── -->
   <div class="panel active" id="panelIdle">
-    <div class="idle-content">
-      <div class="idle-icon">
-        <i class="bi bi-broadcast"></i>
+    <div class="notebook-container">
+      <div class="notebook">
+        <!-- spiral binding effect -->
+        <div class="spiral-binder"></div>
+        
+        <div class="notebook-page">
+          <!-- GREETING STICKY NOTE (pinned to top-right of notebook) -->
+          <div class="greeting-sticky">
+            <div class="sticky-pin-greeting"></div>
+            <div class="greeting-emoji">👋</div>
+            <div class="greeting-text">
+              hey, <strong>{{ request.user.username }}</strong>
+            </div>
+            <div class="greeting-sub">ready to vibe?</div>
+          </div>
+          
+          <div class="page-header">
+            <span class="page-title">chichi</span>
+            <span class="page-date">today's session</span>
+          </div>
+          
+          <div class="ruled-line"></div>
+          <div class="ruled-line"></div>
+          
+          <div class="handwritten-title">
+            connect with <br>someone new
+          </div>
+          
+          <div class="handwritten-body">
+            Meet a random human. <br>
+            Video chat. Play games. <br>
+            No awkward silences.
+          </div>
+          
+          <div class="highlight-box">
+            <i class="bi bi-check-circle-fill"></i> {{ online_users_count }} online right now
+          </div>
+          
+          <div class="button-row">
+            <button class="btn-notebook" id="btnConnect">
+              <i class="bi bi-broadcast"></i> Start Matching
+              <i class="bi bi-arrow-right"></i>
+            </button>
+          </div>
+          
+          <div class="page-footer">
+            — no profiles · no data · just vibes —
+          </div>
+        </div>
       </div>
-      <h1>connect with someone new</h1>
-      <p>Meet someone random. It might be worth it. Video &amp; Chat.</p>
-      <button class="btn btn-primary" id="btnConnect">
-        <i class="bi bi-broadcast"></i> Start Matching
-      </button>
     </div>
   </div>
+
 
   <!-- ── WAITING PANEL ───────────────────────────────────────────────────── -->
   <div class="panel" id="panelWaiting">

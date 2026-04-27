@@ -3,9 +3,10 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
 
-@login_required
-def home_view(request):
-    return render(request, 'files/home.html')
+def index_view(request):
+    return render(request, 'files/index.html', {
+        'is_authenticated': request.user.is_authenticated,
+    })
 
 
 @login_required
