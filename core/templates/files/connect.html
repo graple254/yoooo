@@ -5,29 +5,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231a1a1a'/%3E%3Ctext x='50' y='68' text-anchor='middle' fill='white' font-size='48' font-family='system-ui, sans-serif' font-weight='600'%3Ech%3C/text%3E%3C/svg%3E">
-
   <title>chichi · connect</title>
 
   <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       background: #ffffff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       color: #111111;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    /* main container */
+    /* ── MAIN CONTAINER ───────────────────────────────────────────────────── */
     .connect-container {
       max-width: 1200px;
       margin: 0 auto;
@@ -37,7 +35,7 @@
       flex-direction: column;
     }
 
-    /* header */
+    /* ── HEADER ───────────────────────────────────────────────────────────── */
     .site-header {
       display: flex;
       align-items: baseline;
@@ -47,6 +45,9 @@
       border-bottom: 1px solid #e5e5e5;
       flex-wrap: wrap;
       gap: 1rem;
+      /* stays on top during game */
+      position: relative;
+      z-index: 10;
     }
 
     .logo {
@@ -66,13 +67,11 @@
     }
 
     .status-dot {
-      width: 8px;
-      height: 8px;
+      width: 8px; height: 8px;
       border-radius: 50%;
       background: #cccccc;
       transition: background 0.2s;
     }
-
     .status-dot.online  { background: #10b981; }
     .status-dot.waiting { background: #f59e0b; animation: pulse 1.4s ease infinite; }
     .status-dot.matched { background: #111111; }
@@ -82,13 +81,8 @@
       50%       { opacity: 0.4; }
     }
 
-    /* panels */
-    .panel {
-      display: none;
-      animation: fadeIn 0.25s ease;
-      flex: 1;
-    }
-
+    /* ── PANELS ───────────────────────────────────────────────────────────── */
+    .panel { display: none; animation: fadeIn 0.25s ease; flex: 1; }
     .panel.active {
       display: flex;
       flex-direction: column;
@@ -101,81 +95,52 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* idle panel */
+    /* ── IDLE ─────────────────────────────────────────────────────────────── */
     .idle-content {
       text-align: center;
-      width: 100%;
-      max-width: 500px;
+      width: 100%; max-width: 500px;
       margin: 0 auto;
       padding: 2rem;
     }
+    @media (max-width: 640px) { .idle-content { max-width: 90%; padding: 1.5rem; } }
 
-    @media (max-width: 640px) {
-      .idle-content { max-width: 90%; padding: 1.5rem; }
-    }
-
-    .idle-icon {
-      font-size: 3.5rem;
-      color: #111111;
-      margin-bottom: 1.5rem;
-    }
-
+    .idle-icon { font-size: 3.5rem; color: #111111; margin-bottom: 1.5rem; }
     .idle-content h1 {
       font-size: clamp(1.8rem, 5vw, 2.5rem);
       font-weight: 600;
       margin-bottom: 1rem;
       color: #111111;
     }
-
     .idle-content p {
-      color: #666666;
-      line-height: 1.5;
+      color: #666666; line-height: 1.5;
       margin-bottom: 2rem;
       font-size: clamp(0.9rem, 3vw, 1rem);
     }
 
-    /* waiting panel */
+    /* ── WAITING ──────────────────────────────────────────────────────────── */
     .waiting-content {
-      text-align: center;
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto;
-      padding: 2rem;
+      text-align: center; width: 100%; max-width: 500px;
+      margin: 0 auto; padding: 2rem;
     }
-
-    @media (max-width: 640px) {
-      .waiting-content { max-width: 90%; padding: 1.5rem; }
-    }
+    @media (max-width: 640px) { .waiting-content { max-width: 90%; padding: 1.5rem; } }
 
     .spinner-icon {
-      font-size: 3rem;
-      color: #111111;
+      font-size: 3rem; color: #111111;
       margin-bottom: 1.5rem;
       animation: spin 1s linear infinite;
     }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to   { transform: rotate(360deg); }
-    }
-
-    .waiting-content h2 {
-      font-size: clamp(1.3rem, 4vw, 1.8rem);
-      font-weight: 500;
-      margin-bottom: 0.5rem;
-    }
-
-    .waiting-content p { font-size: clamp(0.8rem, 3vw, 0.9rem); }
+    .waiting-content h2 { font-size: clamp(1.3rem, 4vw, 1.8rem); font-weight: 500; margin-bottom: 0.5rem; }
+    .waiting-content p  { font-size: clamp(0.8rem, 3vw, 0.9rem); }
 
     .session-id {
       font-family: 'SF Mono', Monaco, monospace;
-      font-size: 0.75rem;
-      color: #999999;
-      margin-top: 1rem;
+      font-size: 0.75rem; color: #999999; margin-top: 1rem;
     }
 
-    /* matched panel */
-    .matched-panel-content { width: 100%; }
+    /* ── MATCHED PANEL ────────────────────────────────────────────────────── */
+    .matched-panel-content { width: 100%; position: relative; }
 
     .matched-header {
       display: flex;
@@ -186,37 +151,31 @@
       margin-bottom: 1.5rem;
       padding-bottom: 1rem;
       border-bottom: 1px solid #e5e5e5;
+      transition: opacity 0.4s ease;
     }
 
+    /* Header fades during active game */
+    .game-active .matched-header { opacity: 0; pointer-events: none; }
+
     .live-badge {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.75rem;
-      color: #10b981;
+      display: flex; align-items: center;
+      gap: 6px; font-size: 0.75rem; color: #10b981;
     }
 
     .session-pill {
-      font-family: monospace;
-      font-size: 0.7rem;
-      color: #666666;
-      background: #f5f5f5;
-      padding: 4px 12px;
-      border-radius: 20px;
+      font-family: monospace; font-size: 0.7rem;
+      color: #666666; background: #f5f5f5;
+      padding: 4px 12px; border-radius: 20px;
     }
 
-    /* video grid */
-    .video-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    @media (max-width: 768px) {
-      .video-grid { grid-template-columns: 1fr; gap: 1rem; }
-    }
-
+    /* ── VIDEO CARDS ──────────────────────────────────────────────────────── */
+    /*
+     * PiP MORPHING SYSTEM
+     * -------------------
+     * Default: two video cards rendered in the flow (side-by-side / stacked).
+     * .game-active: both cards leave the flow, become position:fixed, fly to corners.
+     * Transition on every property so the "fly" is smooth.
+     */
     .video-card {
       position: relative;
       background: #f5f5f5;
@@ -224,43 +183,125 @@
       overflow: hidden;
       aspect-ratio: 4/3;
       border: 1px solid #e5e5e5;
+
+      /* Transition for PiP morph */
+      transition:
+        width 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        height 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        top 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        bottom 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        left 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        right 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        border-radius 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+        border 0.4s ease,
+        aspect-ratio 0s;
     }
 
     .video-card video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
+      width: 100%; height: 100%;
+      object-fit: cover; display: block;
     }
 
     .video-label {
       position: absolute;
-      bottom: 12px;
-      left: 12px;
+      bottom: 12px; left: 12px;
       background: rgba(0,0,0,0.6);
-      color: white;
-      font-size: 0.7rem;
-      padding: 4px 10px;
-      border-radius: 20px;
+      color: white; font-size: 0.7rem;
+      padding: 4px 10px; border-radius: 20px;
       backdrop-filter: blur(4px);
+      z-index: 2;
     }
 
     .video-placeholder {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px; color: #999999; background: #fafafa;
+    }
+    .video-placeholder i    { font-size: 2rem; }
+    .video-placeholder span { font-size: 0.75rem; }
+
+    /* Default video grid: two columns */
+    .video-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 768px) {
+      .video-grid { grid-template-columns: 1fr; gap: 1rem; }
+    }
+
+    /* ── PiP STATE (.game-active) ─────────────────────────────────────────── */
+    .game-active .video-grid {
+      /* Grid becomes invisible placeholder; cards escape to fixed */
+      display: block;
+      pointer-events: none;
+      height: 0;
+      margin: 0;
+      overflow: visible;
+    }
+
+    /* Both cards go fixed during game */
+    .game-active .video-card {
+      position: fixed;
+      width: 200px;
+      height: auto;
+      aspect-ratio: 4/3;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 2px solid rgba(255,255,255,0.7);
+      z-index: 200;
+      pointer-events: all;
+    }
+
+    /* Local → bottom-left */
+    .game-active .video-card.local-card {
+      bottom: 24px;
+      left: 24px;
+      top: auto;
+      right: auto;
+    }
+
+    /* Remote → top-right */
+    .game-active .video-card.remote-card {
+      top: 24px;
+      right: 24px;
+      bottom: auto;
+      left: auto;
+    }
+
+    /* Mobile: smaller PiP so board is visible */
+    @media (max-width: 640px) {
+      .game-active .video-card { width: 120px; }
+      .game-active .video-card.local-card  { bottom: 16px; left: 16px; }
+      .game-active .video-card.remote-card { top: 16px; right: 16px; }
+    }
+
+    /* ── GAME BOARD AREA ──────────────────────────────────────────────────── */
+    .game-board-area {
+      display: none;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Show board only during game */
+    .game-active .game-board-area {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      color: #999999;
-      background: #fafafa;
+      min-height: calc(100vh - 80px);
+      animation: fadeIn 0.4s ease 0.4s both;
     }
 
-    .video-placeholder i   { font-size: 2rem; }
-    .video-placeholder span { font-size: 0.75rem; }
+    #gameBoard {
+      width: min(400px, 88vw);
+      min-height: 400px;
+    }
 
-    /* chat area */
+    /* ── CHAT + LOG (hidden during game) ─────────────────────────────────── */
     .chat-container {
       background: white;
       border: 1px solid #e5e5e5;
@@ -268,79 +309,61 @@
       overflow: hidden;
       margin-bottom: 1.5rem;
       box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+      transition: opacity 0.4s ease, max-height 0.5s ease;
+      max-height: 600px;
+    }
+
+    .game-active .chat-container {
+      opacity: 0;
+      pointer-events: none;
+      max-height: 0;
+      margin: 0;
+      overflow: hidden;
     }
 
     .chat-tabs {
       display: flex;
       border-bottom: 1px solid #e5e5e5;
       background: #fafafa;
-      padding: 0 4px;
-      flex-wrap: wrap;
+      padding: 0 4px; flex-wrap: wrap;
     }
 
     .chat-tab {
       flex: 0 0 auto;
       padding: 12px 20px;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: #888888;
-      background: none;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      font-size: 0.8rem; font-weight: 500;
+      color: #888888; background: none; border: none;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
       border-bottom: 2px solid transparent;
       margin-bottom: -1px;
     }
+    @media (max-width: 480px) { .chat-tab { padding: 10px 16px; font-size: 0.75rem; } }
+    .chat-tab i     { font-size: 0.9rem; }
+    .chat-tab:hover { color: #444444; }
+    .chat-tab.active { color: #111111; border-bottom-color: #111111; background: white; }
 
-    @media (max-width: 480px) {
-      .chat-tab { padding: 10px 16px; font-size: 0.75rem; }
-    }
-
-    .chat-tab i        { font-size: 0.9rem; }
-    .chat-tab:hover    { color: #444444; }
-    .chat-tab.active   { color: #111111; border-bottom-color: #111111; background: white; }
-
-    .chat-pane         { display: none; height: 280px; background: white; }
-    .chat-pane.active  { display: flex; flex-direction: column; }
-
+    .chat-pane        { display: none; height: 280px; background: white; }
+    .chat-pane.active { display: flex; flex-direction: column; }
     @media (max-width: 640px) { .chat-pane { height: 240px; } }
 
-    /* log pane */
     .log-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-      background: #fafafa;
+      flex: 1; overflow-y: auto; padding: 16px; background: #fafafa;
     }
-
     .log-entry {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      padding: 6px 0;
-      font-size: 0.75rem;
-      border-bottom: 1px solid #f0f0f0;
+      display: flex; align-items: baseline;
+      gap: 12px; padding: 6px 0;
+      font-size: 0.75rem; border-bottom: 1px solid #f0f0f0;
     }
-
     .log-time    { color: #999999; font-family: monospace; font-size: 0.7rem; flex-shrink: 0; }
     .log-message { color: #555555; flex: 1; word-break: break-word; }
     .log-message.event { color: #111111; font-weight: 500; }
     .log-message.warn  { color: #f59e0b; }
 
-    /* chat messages */
     .messages-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      background: #ffffff;
+      flex: 1; overflow-y: auto; padding: 20px;
+      display: flex; flex-direction: column; gap: 12px; background: #ffffff;
     }
-
     @media (max-width: 640px) { .messages-container { padding: 12px; } }
 
     .messages-container::-webkit-scrollbar,
@@ -351,116 +374,78 @@
     .log-container::-webkit-scrollbar-thumb { background: #cccccc; border-radius: 10px; }
 
     .message {
-      display: flex;
-      max-width: 75%;
+      display: flex; max-width: 75%;
       animation: messageSlide 0.2s ease;
     }
-
     @media (max-width: 640px) { .message { max-width: 85%; } }
-
     @keyframes messageSlide {
       from { opacity: 0; transform: translateY(4px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
     .message.mine   { align-self: flex-end;  justify-content: flex-end; }
     .message.theirs { align-self: flex-start; justify-content: flex-start; }
 
     .message-bubble {
       padding: 10px 16px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      line-height: 1.45;
-      word-break: break-word;
-      max-width: 100%;
+      border-radius: 20px; font-size: 0.85rem; line-height: 1.45;
+      word-break: break-word; max-width: 100%;
     }
-
     .message.mine   .message-bubble { background: #111111; color: white; border-bottom-right-radius: 4px; }
     .message.theirs .message-bubble { background: #f0f0f0; color: #111111; border-bottom-left-radius: 4px; }
 
     .empty-chat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
-      color: #cccccc;
-      gap: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      height: 100%; color: #cccccc; gap: 12px;
     }
-
     .empty-chat i { font-size: 2.5rem; }
     .empty-chat p { font-size: 0.8rem; }
 
-    /* chat input */
     .chat-input-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 20px;
-      background: white;
-      border-top: 1px solid #e5e5e5;
+      display: flex; align-items: center;
+      gap: 12px; padding: 16px 20px;
+      background: white; border-top: 1px solid #e5e5e5;
     }
-
     @media (max-width: 640px) { .chat-input-wrapper { padding: 12px 16px; gap: 8px; } }
 
     #chatInput {
-      flex: 1;
-      border: 1px solid #e5e5e5;
-      border-radius: 30px;
-      padding: 10px 18px;
-      font-size: 0.85rem;
-      outline: none;
-      font-family: inherit;
-      transition: all 0.2s;
+      flex: 1; border: 1px solid #e5e5e5;
+      border-radius: 30px; padding: 10px 18px;
+      font-size: 0.85rem; outline: none;
+      font-family: inherit; transition: all 0.2s;
       background: #fafafa;
     }
-
-    #chatInput:focus          { border-color: #111111; background: white; }
-    #chatInput::placeholder   { color: #bbbbbb; }
+    #chatInput:focus        { border-color: #111111; background: white; }
+    #chatInput::placeholder { color: #bbbbbb; }
 
     #chatSendBtn {
-      background: #111111;
-      border: none;
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      cursor: pointer;
-      transition: all 0.2s;
+      background: #111111; border: none;
+      width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; cursor: pointer; transition: all 0.2s;
     }
-
     #chatSendBtn:hover { background: #333333; transform: scale(1.02); }
     #chatSendBtn i     { font-size: 1rem; }
 
-    /* action buttons */
+    /* ── OLD ACTION BUTTONS (hidden during game, replaced by FABs) ─────────── */
     .action-buttons {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
+      display: flex; gap: 12px;
+      flex-wrap: wrap; justify-content: center;
+      transition: opacity 0.4s ease;
+    }
+
+    .game-active .action-buttons {
+      opacity: 0; pointer-events: none; height: 0; overflow: hidden; margin: 0;
     }
 
     .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 20px;
-      border-radius: 40px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      border: 1px solid #e5e5e5;
-      background: white;
-      color: #111111;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 40px;
+      font-size: 0.85rem; font-weight: 500;
+      border: 1px solid #e5e5e5; background: white; color: #111111;
+      cursor: pointer; transition: all 0.2s; text-decoration: none;
     }
-
     @media (max-width: 480px) { .btn { padding: 8px 16px; font-size: 0.8rem; } }
-
     .btn:hover         { background: #f5f5f5; transform: translateY(-1px); }
     .btn-primary       { background: #111111; color: white; border: none; }
     .btn-primary:hover { background: #333333; }
@@ -469,48 +454,297 @@
     .btn-warning       { color: #f59e0b; border-color: #f59e0b; }
     .btn-warning:hover { background: #f59e0b; color: white; }
 
-    /* ── REPORT BUTTON ── */
-    /* Sits alongside the other action buttons.  Uses a muted appearance by
-       default so it doesn't distract; turns red on hover to signal severity. */
-    .btn-report {
-      color: #999999;
-      border-color: #e5e5e5;
-    }
-
-    .btn-report:hover {
-      color: #dc2626;
-      border-color: #dc2626;
-      background: #fff5f5;
-      transform: translateY(-1px);
-    }
-
-    /* Disabled state: once reported we grey it out so the user can't double-report */
+    .btn-report { color: #999999; border-color: #e5e5e5; }
+    .btn-report:hover { color: #dc2626; border-color: #dc2626; background: #fff5f5; transform: translateY(-1px); }
     .btn-report:disabled,
-    .btn-report.reported {
-      opacity: 0.45;
-      cursor: not-allowed;
-      transform: none;
-      color: #999999;
-      border-color: #e5e5e5;
-      background: white;
+    .btn-report.reported { opacity: 0.45; cursor: not-allowed; transform: none; color: #999999; border-color: #e5e5e5; background: white; }
+
+    /* ── FLOATING ACTION BUTTONS (FABs) ───────────────────────────────────── */
+    /*  Shown whenever matched (normal + game mode), vertical stack bottom-right */
+    .fab-stack {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      display: flex;
+      flex-direction: column-reverse; /* bottom item first visually */
+      gap: 14px;
+      z-index: 300;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(60px);
+      transition: opacity 0.4s ease 0.3s, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
     }
 
-    /* ── REPORT MODAL ── */
-    /* Built from scratch — no Bootstrap modal — so it matches the page's
-       aesthetic and avoids the BS backdrop z-index fights.               */
-    .report-backdrop {
+    /* JS adds .fab-visible when matched (normal or game mode) */
+    .fab-stack.fab-visible {
+      opacity: 1;
+      pointer-events: all;
+      transform: translateX(0);
+    }
+
+    /* Hide Play Game FAB only when a game is already active */
+    .game-active #fabGamesWrap { display: none; }
+
+    @media (max-width: 640px) {
+      .fab-stack { bottom: 16px; right: 16px; gap: 10px; }
+    }
+
+    .fab {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      border: 1px solid #e5e5e5;
+      background: #ffffff;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06);
+      color: #111111;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+      position: relative;
+    }
+
+    /* In game mode: glass style */
+    .game-active .fab {
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(12px) saturate(160%);
+      -webkit-backdrop-filter: blur(12px) saturate(160%);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .fab:hover {
+      transform: scale(1.12);
+      background: #f5f5f5;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.14);
+    }
+
+    .game-active .fab:hover {
+      background: rgba(255,255,255,0.32);
+      box-shadow: 0 6px 28px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.5);
+    }
+
+    .fab:active { transform: scale(0.96); }
+
+    .fab svg { width: 20px; height: 20px; stroke: #111; }
+
+    .fab.fab-danger svg   { stroke: #dc2626; }
+    .fab.fab-danger:hover { background: rgba(220,38,38,0.12); }
+
+    .fab.fab-warn svg   { stroke: #d97706; }
+    .fab.fab-warn:hover { background: rgba(245,158,11,0.12); }
+
+    /* Tooltip */
+    .fab::before {
+      content: attr(data-tip);
+      position: absolute;
+      right: calc(100% + 10px);
+      top: 50%; transform: translateY(-50%);
+      background: rgba(17,17,17,0.85);
+      color: white;
+      font-size: 0.72rem;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      padding: 5px 11px;
+      border-radius: 8px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    .fab:hover::before { opacity: 1; }
+
+    @media (max-width: 640px) {
+      .fab { width: 44px; height: 44px; }
+      .fab svg { width: 18px; height: 18px; }
+      .fab::before { display: none; } /* tooltips too cramped on mobile */
+    }
+
+    /* ── GAMES DROPDOWN (action-buttons bar) ─────────────────────────────── */
+    .games-dropdown-wrap {
+      position: relative;
+    }
+    .games-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 6px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.1);
+      min-width: 180px;
+      z-index: 200;
+      animation: fadeIn 0.15s ease;
+    }
+    .games-dropdown.open { display: block; }
+    .games-dropdown-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px; border-radius: 9px;
+      font-size: 0.83rem; font-weight: 500;
+      color: #111; cursor: pointer;
+      border: none; background: none; width: 100%; text-align: left;
+      transition: background 0.15s;
+    }
+    .games-dropdown-item:hover { background: #f5f5f5; }
+    .games-dropdown-item .game-badge {
+      font-size: 0.65rem; background: #f0f0f0;
+      color: #888; padding: 2px 7px; border-radius: 20px; margin-left: auto;
+    }
+
+    /* ── FAB GAMES DROPDOWN ───────────────────────────────────────────────── */
+    .fab-games-wrap {
+      position: relative;
+    }
+    .fab-games-dropdown {
+      display: none;
+      position: absolute;
+      right: calc(100% + 10px);
+      bottom: 0;
+      background: white;
+      border: 1px solid #e5e5e5;
+      border-radius: 14px;
+      padding: 6px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.14);
+      min-width: 190px;
+      z-index: 400;
+      animation: fadeIn 0.15s ease;
+    }
+    .fab-games-dropdown.open { display: block; }
+
+    /* Chat FAB */
+    .fab.fab-chat svg { stroke: #6366f1; }
+    .fab.fab-chat:hover { background: rgba(99,102,241,0.12); }
+
+    /* Unread message dot on chat FAB */
+    .fab.fab-chat .chat-unread-dot {
+      display: none;
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ef4444;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(239,68,68,0.3);
+      animation: dotPulse 1.8s ease infinite;
+    }
+    .fab.fab-chat.has-unread .chat-unread-dot { display: block; }
+
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1);   opacity: 1; }
+      50%       { transform: scale(1.2); opacity: 0.8; }
+    }
+
+    /* ── CHAT SLIDE-UP (during game mode) ────────────────────────────────── */
+    .game-chat-overlay {
       display: none;
       position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.35);
-      z-index: 900;
-      align-items: center;
-      justify-content: center;
-      animation: backdropIn 0.18s ease;
+      bottom: 90px; right: 88px;
+      width: min(320px, calc(100vw - 48px));
+      height: 380px;
+      background: white;
+      border-radius: 20px;
+      border: 1px solid #e5e5e5;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.15);
+      z-index: 350;
+      flex-direction: column;
+      overflow: hidden;
+      animation: slideUpChat 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    .game-chat-overlay.open { display: flex; }
+    @keyframes slideUpChat {
+      from { opacity:0; transform: translateY(16px) scale(0.97); }
+      to   { opacity:1; transform: translateY(0) scale(1); }
+    }
+    .game-chat-header {
+      padding: 12px 16px; border-bottom: 1px solid #f0f0f0;
+      font-size: 0.8rem; font-weight: 600; color: #111;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .game-chat-close {
+      background: none; border: none; cursor: pointer;
+      color: #aaa; font-size: 1rem; line-height:1; padding: 2px 4px;
+      transition: color 0.15s;
+    }
+    .game-chat-close:hover { color: #111; }
+    .game-chat-messages {
+      flex: 1; overflow-y: auto; padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .game-chat-input-row {
+      display: flex; gap: 8px; padding: 10px 14px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .game-chat-input-row input {
+      flex:1; border: 1px solid #e5e5e5; border-radius: 20px;
+      padding: 8px 14px; font-size: 0.82rem; outline: none;
+      font-family: inherit; background: #fafafa;
+    }
+    .game-chat-input-row input:focus { border-color: #6366f1; background: white; }
+    .game-chat-input-row button {
+      background: #111; border: none; width: 34px; height: 34px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      color: white; cursor: pointer; flex-shrink: 0;
+    }
+    .game-chat-input-row button:hover { background: #333; }
+    @media (max-width: 640px) {
+      .game-chat-overlay {
+        bottom: 70px; right: 16px; left: 16px; width: auto;
+        height: 320px;
+      }
     }
 
-    .report-backdrop.open {
+    /* ── COUNTDOWN OVERLAY ────────────────────────────────────────────────── */
+    .countdown-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
       display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 800;
+      animation: backdropIn 0.25s ease;
+      /* pointer-events blocks all interaction */
+    }
+
+    .countdown-overlay.hidden {
+      display: none;
+    }
+
+    .countdown-inner {
+      text-align: center;
+    }
+
+    .countdown-label {
+      color: rgba(255,255,255,0.7);
+      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      font-weight: 500;
+    }
+
+    .countdown-number {
+      font-size: clamp(6rem, 22vw, 10rem);
+      font-weight: 700;
+      color: white;
+      line-height: 1;
+      /* each number gets re-animated by JS re-triggering the class */
+    }
+
+    .countdown-number.pop {
+      animation: countPop 1s ease forwards;
+    }
+
+    @keyframes countPop {
+      0%   { transform: scale(1.5); opacity: 0; }
+      25%  { transform: scale(1);   opacity: 1; }
+      80%  { transform: scale(1);   opacity: 1; }
+      100% { transform: scale(0.75); opacity: 0; }
     }
 
     @keyframes backdropIn {
@@ -518,92 +752,62 @@
       to   { opacity: 1; }
     }
 
+    /* ── REPORT MODAL ─────────────────────────────────────────────────────── */
+    .report-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 900;
+      align-items: center; justify-content: center;
+      animation: backdropIn 0.18s ease;
+    }
+    .report-backdrop.open { display: flex; }
+
     .report-modal {
-      background: #ffffff;
-      border-radius: 20px;
+      background: #ffffff; border-radius: 20px;
       padding: 2rem;
       width: min(420px, calc(100vw - 2.5rem));
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
       animation: modalIn 0.22s cubic-bezier(0.34, 1.3, 0.64, 1);
       position: relative;
     }
-
     @keyframes modalIn {
       from { opacity: 0; transform: translateY(12px) scale(0.97); }
       to   { opacity: 1; transform: translateY(0)    scale(1); }
     }
 
     .report-modal-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 50%;
+      width: 48px; height: 48px; border-radius: 50%;
       background: #fff0f0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       margin-bottom: 1.25rem;
     }
+    .report-modal-icon i { font-size: 1.4rem; color: #dc2626; }
+    .report-modal h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem; color: #111111; }
+    .report-modal p { font-size: 0.83rem; color: #666666; line-height: 1.55; margin-bottom: 1.5rem; }
 
-    .report-modal-icon i {
-      font-size: 1.4rem;
-      color: #dc2626;
-    }
-
-    .report-modal h3 {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: #111111;
-    }
-
-    .report-modal p {
-      font-size: 0.83rem;
-      color: #666666;
-      line-height: 1.55;
-      margin-bottom: 1.5rem;
-    }
-
-    .report-modal-actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-    }
+    .report-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
     .btn-modal-cancel {
-      padding: 9px 20px;
-      border-radius: 40px;
-      border: 1px solid #e5e5e5;
-      background: white;
-      color: #666666;
-      font-size: 0.83rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.18s;
-      font-family: inherit;
+      padding: 9px 20px; border-radius: 40px;
+      border: 1px solid #e5e5e5; background: white;
+      color: #666666; font-size: 0.83rem; font-weight: 500;
+      cursor: pointer; transition: all 0.18s; font-family: inherit;
     }
-
     .btn-modal-cancel:hover { background: #f5f5f5; }
 
     .btn-modal-confirm {
-      padding: 9px 20px;
-      border-radius: 40px;
-      border: none;
-      background: #dc2626;
-      color: white;
-      font-size: 0.83rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.18s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      padding: 9px 20px; border-radius: 40px; border: none;
+      background: #dc2626; color: white;
+      font-size: 0.83rem; font-weight: 500;
+      cursor: pointer; transition: all 0.18s;
+      display: flex; align-items: center; gap: 6px;
       font-family: inherit;
     }
-
     .btn-modal-confirm:hover    { background: #b91c1c; }
     .btn-modal-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* footer */
+    /* ── FOOTER ───────────────────────────────────────────────────────────── */
     .site-footer {
       margin-top: auto;
       padding-top: 2rem;
@@ -614,41 +818,57 @@
       margin-top: 2rem;
     }
 
-    /* toast */
+    /* ── TOAST ────────────────────────────────────────────────────────────── */
     .toast-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
+      display: flex; flex-direction: column; gap: 8px;
+      align-items: center;
     }
 
     .toast-msg {
-      background: #111111;
-      color: white;
-      padding: 10px 16px;
-      border-radius: 40px;
+      background: #111111; color: white;
+      padding: 10px 16px; border-radius: 40px;
       font-size: 0.8rem;
-      animation: slideIn 0.2s ease, fadeOut 0.2s ease 2.8s forwards;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      animation: slideUp 0.2s ease, fadeOut 0.2s ease 2.8s forwards;
+      display: flex; align-items: center; gap: 8px;
+      white-space: nowrap;
     }
-
     .toast-msg.toast-success { background: #111111; }
     .toast-msg.toast-warn    { background: #f59e0b; }
     .toast-msg.toast-error   { background: #dc2626; }
 
-    @keyframes slideIn {
-      from { opacity: 0; transform: translateX(20px); }
-      to   { opacity: 1; transform: translateX(0); }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; transform: translateY(10px); }
     }
 
-    @keyframes fadeOut {
-      to { opacity: 0; transform: translateX(20px); }
+    /* ── GAME RESULT BANNER ───────────────────────────────────────────────── */
+    .game-result-banner {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: white;
+      border-radius: 24px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.25);
+      z-index: 700;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.35s cubic-bezier(0.34, 1.3, 0.64, 1);
     }
+    .game-result-banner.visible {
+      opacity: 1;
+      pointer-events: all;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .game-result-banner h2 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .game-result-banner p  { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .game-result-banner .result-btns { display: flex; gap: 10px; justify-content: center; }
   </style>
 </head>
 <body>
@@ -664,7 +884,7 @@
     </div>
   </div>
 
-  <!-- IDLE PANEL -->
+  <!-- ── IDLE PANEL ──────────────────────────────────────────────────────── -->
   <div class="panel active" id="panelIdle">
     <div class="idle-content">
       <div class="idle-icon">
@@ -678,7 +898,7 @@
     </div>
   </div>
 
-  <!-- WAITING PANEL -->
+  <!-- ── WAITING PANEL ───────────────────────────────────────────────────── -->
   <div class="panel" id="panelWaiting">
     <div class="waiting-content">
       <div class="spinner-icon">
@@ -693,9 +913,9 @@
     </div>
   </div>
 
-  <!-- MATCHED PANEL -->
+  <!-- ── MATCHED PANEL ───────────────────────────────────────────────────── -->
   <div class="panel" id="panelMatched">
-    <div class="matched-panel-content">
+    <div class="matched-panel-content" id="matchedContent">
 
       <div class="matched-header">
         <div class="live-badge">
@@ -705,9 +925,9 @@
         <div class="session-pill" id="sessionIdDisplay">—</div>
       </div>
 
-      <!-- video grid -->
-      <div class="video-grid">
-        <div class="video-card">
+      <!-- video grid — cards fly to PiP on game start -->
+      <div class="video-grid" id="videoGrid">
+        <div class="video-card local-card" id="localCard">
           <video id="localVideo" autoplay muted playsinline></video>
           <div class="video-label">you</div>
           <div class="video-placeholder" id="localPlaceholder">
@@ -715,7 +935,7 @@
             <span>camera off</span>
           </div>
         </div>
-        <div class="video-card">
+        <div class="video-card remote-card" id="remoteCard">
           <video id="remoteVideo" autoplay playsinline></video>
           <div class="video-label">partner</div>
           <div class="video-placeholder" id="remotePlaceholder">
@@ -723,6 +943,11 @@
             <span>waiting for partner...</span>
           </div>
         </div>
+      </div>
+
+      <!-- Game board — reveals when game-active -->
+      <div class="game-board-area" id="gameBoardArea">
+        <div id="gameBoard"></div>
       </div>
 
       <!-- chat / log area -->
@@ -735,13 +960,9 @@
             <i class="bi bi-chat-dots"></i> chat
           </button>
         </div>
-
-        <!-- Log pane -->
         <div class="chat-pane active" id="logPane">
           <div class="log-container" id="logMessages"></div>
         </div>
-
-        <!-- Chat pane -->
         <div class="chat-pane" id="chatPane">
           <div class="messages-container" id="chatMessages">
             <div class="empty-chat" id="emptyChatState">
@@ -758,18 +979,26 @@
         </div>
       </div>
 
-      <!-- action buttons — Report sits at the end, visually separated -->
+      <!-- action buttons (flow; hidden during game) -->
       <div class="action-buttons">
         <button class="btn" id="btnCamera">
           <i class="bi bi-camera-video-fill"></i> Camera
         </button>
+        <!-- Games dropdown -->
+        <div class="games-dropdown-wrap" id="gamesDropdownWrap">
+          <button class="btn" id="btnPlayGame">
+            <i class="bi bi-controller"></i> Play Game <i class="bi bi-chevron-down" style="font-size:0.7rem;margin-left:2px;"></i>
+          </button>
+          <div class="games-dropdown" id="gamesDropdown">
+            <!-- populated by GAME_REGISTRY -->
+          </div>
+        </div>
         <button class="btn btn-warning" id="btnRematch">
           <i class="bi bi-shuffle"></i> New Match
         </button>
         <button class="btn btn-danger" id="btnLeave">
           <i class="bi bi-box-arrow-right"></i> Leave
         </button>
-        <!-- ── NEW: report button ── -->
         <button class="btn btn-report" id="btnReport" title="Report this user">
           <i class="bi bi-flag"></i> Report
         </button>
@@ -785,11 +1014,76 @@
 
 </div><!-- /connect-container -->
 
-<!-- toast container -->
+<!-- ── FLOATING ACTION BUTTONS (always visible when matched) ────────────── -->
+<div class="fab-stack" id="fabStack">
+  <!-- Top = last in DOM (column-reverse) -->
+  <button class="fab fab-danger" id="fabLeave" data-tip="Leave session">
+    <i data-lucide="log-out"></i>
+  </button>
+  <button class="fab fab-warn" id="fabReport" data-tip="Report partner">
+    <i data-lucide="flag"></i>
+  </button>
+  <button class="fab" id="fabRematch" data-tip="New match">
+    <i data-lucide="refresh-cw"></i>
+  </button>
+  <!-- Play Game FAB — hidden when a game is already active -->
+  <div class="fab-games-wrap" id="fabGamesWrap">
+    <button class="fab" id="fabPlayGame" data-tip="Play a game">
+      <i data-lucide="gamepad-2"></i>
+    </button>
+    <div class="fab-games-dropdown" id="fabGamesDropdown">
+      <!-- populated by GAME_REGISTRY -->
+    </div>
+  </div>
+  <button class="fab" id="fabCamera" data-tip="Toggle camera">
+    <i data-lucide="video"></i>
+  </button>
+  <!-- Chat FAB -->
+  <button class="fab fab-chat" id="fabChat" data-tip="Chat">
+    <i data-lucide="message-circle"></i>
+    <span class="chat-unread-dot"></span>
+  </button>
+</div>
+
+<!-- ── COUNTDOWN OVERLAY ─────────────────────────────────────────────────── -->
+<div class="countdown-overlay hidden" id="countdownOverlay">
+  <div class="countdown-inner">
+    <div class="countdown-label">Game starts in</div>
+    <div class="countdown-number" id="countdownNumber">5</div>
+  </div>
+</div>
+
+<!-- ── GAME RESULT BANNER ─────────────────────────────────────────────────── -->
+<div class="game-result-banner" id="gameResultBanner">
+  <h2 id="gameResultTitle">You win!</h2>
+  <p id="gameResultSub">Well played. What's next?</p>
+  <div class="result-btns">
+    <button class="btn btn-primary" id="resultRematch">
+      <i class="bi bi-shuffle"></i> New Match
+    </button>
+    <button class="btn" id="resultStay">Keep chatting</button>
+  </div>
+</div>
+
+<!-- ── TOAST CONTAINER ────────────────────────────────────────────────────── -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- ── REPORT MODAL ────────────────────────────────────────────────────── -->
-<!-- Sits outside the connect-container so it overlays everything correctly -->
+<!-- ── GAME CHAT OVERLAY (visible during game mode) ──────────────────────── -->
+<div class="game-chat-overlay" id="gameChatOverlay">
+  <div class="game-chat-header">
+    <span><i class="bi bi-chat-dots" style="color:#6366f1;margin-right:6px;"></i>Chat</span>
+    <button class="game-chat-close" id="gameChatClose">✕</button>
+  </div>
+  <div class="game-chat-messages" id="gameChatMessages">
+    <div style="color:#ccc;font-size:0.78rem;text-align:center;margin:auto;">No messages yet</div>
+  </div>
+  <div class="game-chat-input-row">
+    <input type="text" id="gameChatInput" placeholder="Say something...">
+    <button id="gameChatSend"><i class="bi bi-arrow-up"></i></button>
+  </div>
+</div>
+
+<!-- ── REPORT MODAL ───────────────────────────────────────────────────────── -->
 <div class="report-backdrop" id="reportBackdrop" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
   <div class="report-modal">
     <div class="report-modal-icon">
@@ -811,14 +1105,20 @@
 </div>
 
 <script src="{% static 'files/match_client.js' %}"></script>
+<script src="{% static 'files/games/three_mens_morris.js' %}"></script>
+<script src="{% static 'files/games/tic_tac_toe.js' %}"></script>
 
 <script>
   "use strict";
+
+  // Render Lucide icons
+  lucide.createIcons();
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
   const panelIdle        = document.getElementById('panelIdle');
   const panelWaiting     = document.getElementById('panelWaiting');
   const panelMatched     = document.getElementById('panelMatched');
+  const matchedContent   = document.getElementById('matchedContent');
   const statusDot        = document.getElementById('statusDot');
   const statusText       = document.getElementById('statusText');
   const sessionIdDisplay = document.getElementById('sessionIdDisplay');
@@ -827,21 +1127,37 @@
   const remoteVideo      = document.getElementById('remoteVideo');
   const localPlaceholder = document.getElementById('localPlaceholder');
   const remotePlaceholder= document.getElementById('remotePlaceholder');
+  const localCard        = document.getElementById('localCard');
+  const remoteCard       = document.getElementById('remoteCard');
   const logMessages      = document.getElementById('logMessages');
   const chatMessages     = document.getElementById('chatMessages');
   const chatInput        = document.getElementById('chatInput');
   const chatSendBtn      = document.getElementById('chatSendBtn');
+  const gameBoardArea    = document.getElementById('gameBoardArea');
+  const fabStack         = document.getElementById('fabStack');
 
-  // ── Report refs ───────────────────────────────────────────────────────────
+  // Report refs
   const btnReport        = document.getElementById('btnReport');
   const reportBackdrop   = document.getElementById('reportBackdrop');
   const reportCancelBtn  = document.getElementById('reportCancelBtn');
   const reportConfirmBtn = document.getElementById('reportConfirmBtn');
 
+  // Countdown refs
+  const countdownOverlay = document.getElementById('countdownOverlay');
+  const countdownNumber  = document.getElementById('countdownNumber');
+
+  // Game result banner
+  const gameResultBanner = document.getElementById('gameResultBanner');
+  const gameResultTitle  = document.getElementById('gameResultTitle');
+  const gameResultSub    = document.getElementById('gameResultSub');
+
   // ── State ─────────────────────────────────────────────────────────────────
   let cameraStream = null;
   let cameraOn     = false;
-  let hasReported  = false;   // prevent double-reporting within the same session
+  let hasReported  = false;
+  let gameActive   = false;
+  let countdownTimer = null;
+  let _localResultShown = false;   // prevents onGameResult overwriting local engine result
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   function showPanel(name) {
@@ -850,6 +1166,12 @@
     panelMatched.classList.remove('active');
     document.getElementById('panel' + name.charAt(0).toUpperCase() + name.slice(1))
             .classList.add('active');
+    // Show FABs whenever we're in the matched panel (normal or game mode)
+    if (name === 'matched') {
+      fabStack.classList.add('fab-visible');
+    } else {
+      fabStack.classList.remove('fab-visible');
+    }
   }
 
   function setStatus(state, text) {
@@ -895,6 +1217,20 @@
   // ── Camera ────────────────────────────────────────────────────────────────
   async function startCamera() {
     try {
+      if (cameraStream) {
+        // Re-enable existing tracks — device is still held, no new getUserMedia needed.
+        // This avoids the black-feed bug where the browser won't give a new stream
+        // while the old (disabled) tracks still hold the device.
+        cameraStream.getVideoTracks().forEach(t => { t.enabled = true; });
+        cameraStream.getAudioTracks().forEach(t => { t.enabled = true; });
+        localVideo.srcObject = cameraStream;
+        localPlaceholder.style.display = 'none';
+        cameraOn = true;
+        addLog('Camera resumed', 'event');
+        return;
+      }
+
+      // First time — acquire device
       cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = cameraStream;
       localPlaceholder.style.display = 'none';
@@ -909,12 +1245,293 @@
 
   function stopCamera() {
     if (cameraStream) {
+      // Disable tracks — keeps the RTCRtpSender alive (remote won't freeze),
+      // keeps the device held so re-enable works instantly without a new getUserMedia.
+      cameraStream.getVideoTracks().forEach(t => { t.enabled = false; });
+      cameraStream.getAudioTracks().forEach(t => { t.enabled = false; });
+      localVideo.srcObject = null;
+      localPlaceholder.style.display = '';
+      cameraOn = false;
+    }
+  }
+
+  function muteCamera() {
+    // Hard stop — called on disconnect/leave where we truly want to release the device.
+    if (cameraStream) {
       cameraStream.getTracks().forEach(t => t.stop());
       cameraStream = null;
       localVideo.srcObject = null;
       localPlaceholder.style.display = '';
       cameraOn = false;
     }
+  }
+
+  // ── PiP morph helpers ─────────────────────────────────────────────────────
+  function activateGameMode() {
+    matchedContent.classList.add('game-active');
+    // FABs remain visible (already shown when matched panel is active)
+    gameActive = true;
+  }
+
+  function deactivateGameMode() {
+    matchedContent.classList.remove('game-active');
+    // FABs remain visible (still in matched panel)
+    gameActive = false;
+    _localResultShown = false;
+    if (_activeGame) {
+      try { _activeGame.module().destroy(); } catch(e) {}
+      _activeGame = null;
+    }
+    gameResultBanner.classList.remove('visible');
+    // Close game chat overlay
+    const gcOverlay = document.getElementById('gameChatOverlay');
+    if (gcOverlay) gcOverlay.classList.remove('open');
+  }
+
+  // ── Countdown ─────────────────────────────────────────────────────────────
+  function startCountdown(onComplete) {
+    let count = 5;
+
+    countdownNumber.textContent = count;
+    countdownOverlay.classList.remove('hidden');
+
+    // Kick off first pop
+    function tick() {
+      // Reset animation by re-cloning
+      countdownNumber.classList.remove('pop');
+      void countdownNumber.offsetWidth; // reflow
+      countdownNumber.classList.add('pop');
+
+      if (count <= 0) {
+        // Countdown done
+        countdownOverlay.classList.add('hidden');
+        onComplete();
+        return;
+      }
+
+      count--;
+      countdownNumber.textContent = count + 1; // show current then decrement
+
+      countdownTimer = setTimeout(() => {
+        countdownNumber.textContent = count <= 0 ? '🎮' : count;
+        tick();
+      }, 1000);
+    }
+
+    // Start immediately
+    countdownNumber.textContent = count;
+    countdownNumber.classList.remove('pop');
+    void countdownNumber.offsetWidth;
+    countdownNumber.classList.add('pop');
+
+    countdownTimer = setTimeout(() => {
+      count--;
+      if (count <= 0) {
+        countdownNumber.textContent = '🎮';
+        countdownNumber.classList.remove('pop');
+        void countdownNumber.offsetWidth;
+        countdownNumber.classList.add('pop');
+        countdownTimer = setTimeout(() => {
+          countdownOverlay.classList.add('hidden');
+          onComplete();
+        }, 900);
+        return;
+      }
+      countdownNumber.textContent = count;
+      countdownNumber.classList.remove('pop');
+      void countdownNumber.offsetWidth;
+      countdownNumber.classList.add('pop');
+
+      // Recursively schedule
+      let remaining = count - 1;
+      function schedule() {
+        countdownTimer = setTimeout(() => {
+          if (remaining <= 0) {
+            countdownNumber.textContent = '🎮';
+            countdownNumber.classList.remove('pop');
+            void countdownNumber.offsetWidth;
+            countdownNumber.classList.add('pop');
+            countdownTimer = setTimeout(() => {
+              countdownOverlay.classList.add('hidden');
+              onComplete();
+            }, 900);
+            return;
+          }
+          countdownNumber.textContent = remaining;
+          countdownNumber.classList.remove('pop');
+          void countdownNumber.offsetWidth;
+          countdownNumber.classList.add('pop');
+          remaining--;
+          schedule();
+        }, 1000);
+      }
+      schedule();
+    }, 1000);
+  }
+
+  // Cleaner countdown implementation (replaces messy nested one above at runtime)
+  function runCountdown(onComplete) {
+    if (countdownTimer) { clearTimeout(countdownTimer); countdownTimer = null; }
+
+    const sequence = [5, 4, 3, 2, 1, '🎮'];
+    let idx = 0;
+
+    countdownOverlay.classList.remove('hidden');
+
+    function step() {
+      const val = sequence[idx];
+      countdownNumber.textContent = val;
+      countdownNumber.classList.remove('pop');
+      // force reflow so animation restarts
+      void countdownNumber.offsetWidth;
+      countdownNumber.classList.add('pop');
+      idx++;
+
+      if (idx < sequence.length) {
+        countdownTimer = setTimeout(step, 1000);
+      } else {
+        // last frame shown — wait for animation then go
+        countdownTimer = setTimeout(() => {
+          countdownOverlay.classList.add('hidden');
+          countdownTimer = null;
+          onComplete();
+        }, 900);
+      }
+    }
+
+    step();
+  }
+
+  // ── Show game result ───────────────────────────────────────────────────────
+  function showGameResult(winner, myRole) {
+    const won  = winner === myRole;
+    const draw = winner === 'draw';
+
+    gameResultTitle.textContent = draw ? 'Draw!' : won ? 'You win! 🎉' : 'You lose.';
+    gameResultSub.textContent   = draw
+      ? 'Close one. Try again?'
+      : won
+        ? 'Well played. What\'s next?'
+        : 'Better luck next time.';
+
+    gameResultBanner.classList.add('visible');
+  }
+
+  // ── GAME REGISTRY — add new games here ──────────────────────────────────
+  const GAME_REGISTRY = [
+    {
+      code:    "3mm",
+      label:   "Three Men's Morris",
+      icon:    "bi-grid-3x3",
+      status:  "live",
+      module:  () => ThreeMensMorris,
+      routeMove(msg) { ThreeMensMorris.handleRemoteMove(msg); },
+    },
+    {
+      code:    "ttt",
+      label:   "Tic Tac Toe",
+      icon:    "bi-hash",
+      status:  "live",
+      module:  () => TicTacToe,
+      routeMove(msg) { TicTacToe.handleRemoteMove(msg); },
+    },
+    // Example — uncomment when Chess module is ready:
+    // {
+    //   code:   "chess",
+    //   label:  "Chess",
+    //   icon:   "bi-trophy",
+    //   status: "soon",
+    //   module: () => Chess,
+    //   routeMove(msg) { Chess.handleRemoteMove(msg); },
+    // },
+  ];
+
+  // Active game engine reference
+  let _activeGame = null;   // GAME_REGISTRY entry currently running
+
+  // Populate both dropdowns from registry
+  function buildGameDropdowns() {
+    const targets = [
+      { el: document.getElementById("gamesDropdown"),    fab: false },
+      { el: document.getElementById("fabGamesDropdown"), fab: true  },
+    ];
+    targets.forEach(({ el }) => {
+      el.innerHTML = "";
+      GAME_REGISTRY.forEach(g => {
+        const btn = document.createElement("button");
+        btn.className = "games-dropdown-item";
+        const soon = g.status === "soon";
+        btn.innerHTML = `
+          <i class="bi ${g.icon}"></i>
+          ${g.label}
+          <span class="game-badge">${g.status}</span>`;
+        btn.disabled = soon;
+        if (soon) btn.style.opacity = "0.5";
+        btn.addEventListener("click", () => {
+          closeAllDropdowns();
+          if (!soon) initiateGame(g.code);
+        });
+        el.appendChild(btn);
+      });
+    });
+  }
+
+  function closeAllDropdowns() {
+    document.getElementById("gamesDropdown").classList.remove("open");
+    document.getElementById("fabGamesDropdown").classList.remove("open");
+  }
+
+  // Build on load
+  buildGameDropdowns();
+
+  // Toggle normal dropdown
+  document.getElementById("btnPlayGame").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const dd = document.getElementById("gamesDropdown");
+    dd.classList.toggle("open");
+    document.getElementById("fabGamesDropdown").classList.remove("open");
+  });
+
+  // Toggle FAB dropdown
+  document.getElementById("fabPlayGame").addEventListener("click", (e) => {
+    e.stopPropagation();
+    const dd = document.getElementById("fabGamesDropdown");
+    dd.classList.toggle("open");
+    document.getElementById("gamesDropdown").classList.remove("open");
+  });
+
+  // Close dropdowns on outside click
+  document.addEventListener("click", closeAllDropdowns);
+
+
+  function initiateGame(gameCode) {
+    if (gameActive) { showToast('Finish the current game first', 'warn'); return; }
+    const entry = GAME_REGISTRY.find(g => g.code === gameCode);
+    if (!entry) return;
+    _activeGame = entry;
+    MatchClient.startGame(gameCode);
+    addLog(`Sent game invite (${gameCode.toUpperCase()})`, 'event');
+    showToast('Game starting!', 'success');
+    launchGame(true);
+  }
+
+  function launchGame(isOfferer) {
+    if (gameActive) return;  // guard against double-launch
+    if (!_activeGame) return;
+    const engine = _activeGame.module();
+    runCountdown(() => {
+      activateGameMode();
+      addLog(`Game started: ${_activeGame.label}`, 'event');
+      _localResultShown = false;   // reset for this game
+
+      engine.init('gameBoard', isOfferer, (winner) => {
+        const myRole = isOfferer ? 'offerer' : 'answerer';
+        _localResultShown = true;
+        MatchClient.sendGameOver(winner);
+        showGameResult(winner, myRole);
+        addLog(`Game over — winner: ${winner}`, 'event');
+      });
+    });
   }
 
   // ── MatchClient callbacks ─────────────────────────────────────────────────
@@ -940,6 +1557,9 @@
       btnReport.classList.remove('reported');
       btnReport.innerHTML = '<i class="bi bi-flag"></i> Report';
 
+      // Revert any leftover game state
+      if (gameActive) deactivateGameMode();
+
       addLog('Connected with partner', 'event');
       showToast('Partner found!', 'success');
     },
@@ -953,20 +1573,23 @@
       addLog('Partner disconnected → rematching', 'warn');
       showToast('Skipping...', 'warn');
 
-      // Small delay so user sees feedback
+      // Revert game mode immediately
+      if (gameActive) deactivateGameMode();
+
+      // Clear countdown if mid-count
+      if (countdownTimer) { clearTimeout(countdownTimer); countdownTimer = null; }
+      countdownOverlay.classList.add('hidden');
+
       setTimeout(() => {
-        // reset UI state
         chatMessages.innerHTML = `
           <div class="empty-chat" id="emptyChatState">
             <i class="bi bi-chat-dots"></i>
             <p>say hello to your partner</p>
           </div>`;
-
         sessionIdDisplay.textContent = '—';
-
-        MatchClient.rematch();
         showPanel('waiting');
-      }, 1000);
+      }, 800);
+      // NOTE: MatchClient auto-rematches after peer_left — do NOT call rematch() here
     },
 
     onTrack(event) {
@@ -975,8 +1598,52 @@
       addLog('Video stream connected', 'event');
     },
 
+    onWatchdogTimeout() {
+      showToast('Connection issue, reconnecting…', 'warn');
+      addLog('ICE watchdog triggered', 'warn');
+    },
+
+    // ── GAME ENGINE callbacks ──────────────────────────────────────────────
+    onGameStart(msg) {
+      addLog(`Game invite received: ${msg.game_type}`, 'event');
+      showToast('Game starting!', 'success');
+      // Receiver side — look up game in registry
+      const entry = GAME_REGISTRY.find(g => g.code === msg.game_type);
+      if (entry) {
+        _activeGame = entry;
+        launchGame(false);
+      } else {
+        addLog(`Unknown game type: ${msg.game_type}`, 'warn');
+      }
+    },
+
+    onGameResult(msg) {
+      // Fired when the peer sends game_over — only show banner if the local
+      // engine callback hasn't already displayed it for this player.
+      if (_localResultShown) return;
+      const myRole = MatchClient.isOfferer ? 'offerer' : 'answerer';
+      showGameResult(msg.winner, myRole);
+    },
+
+    onGameMove(msg) {
+      // MatchClient wraps game code as msg.game_type (same as onGameStart).
+      // Also check msg.sub_type and msg.game as fallbacks for older versions.
+      const code = msg.game_type || msg.sub_type || msg.game;
+      const entry = _activeGame || GAME_REGISTRY.find(g => g.code === code);
+      if (entry) {
+        entry.routeMove(msg);
+      } else {
+        addLog(`Unrouted game move (code: ${code})`, 'warn');
+      }
+    },
+
     onChat(message) {
       addChatMessage(message.text, 'theirs');
+      addGameChatMessage(message.text, 'theirs');
+      // Show unread dot if chat overlay isn't currently open
+      if (!gameChatOverlay.classList.contains('open')) {
+        document.getElementById('fabChat').classList.add('has-unread');
+      }
     },
 
     onError(err) {
@@ -985,16 +1652,59 @@
   });
 
   // ── Chat ──────────────────────────────────────────────────────────────────
+  const gameChatOverlay  = document.getElementById('gameChatOverlay');
+  const gameChatMessages = document.getElementById('gameChatMessages');
+  const gameChatInput    = document.getElementById('gameChatInput');
+  const gameChatSend     = document.getElementById('gameChatSend');
+  const gameChatClose    = document.getElementById('gameChatClose');
+  let   gameChatHasMsg   = false;
+
+  function addGameChatMessage(text, side) {
+    if (!gameChatHasMsg) {
+      gameChatMessages.innerHTML = "";
+      gameChatHasMsg = true;
+    }
+    const div = document.createElement('div');
+    div.className = `message ${side}`;
+    div.style.cssText = 'display:flex;' + (side === 'mine' ? 'justify-content:flex-end;' : '');
+    div.innerHTML = `<div class="message-bubble">${escapeHtml(text)}</div>`;
+    gameChatMessages.appendChild(div);
+    gameChatMessages.scrollTop = gameChatMessages.scrollHeight;
+  }
+
   function sendChat() {
     const text = chatInput.value.trim();
     if (!text) return;
     MatchClient.sendChat(text);
     addChatMessage(text, 'mine');
+    addGameChatMessage(text, 'mine');
     chatInput.value = '';
+  }
+
+  function sendGameChat() {
+    const text = gameChatInput.value.trim();
+    if (!text) return;
+    MatchClient.sendChat(text);
+    addChatMessage(text, 'mine');
+    addGameChatMessage(text, 'mine');
+    gameChatInput.value = '';
   }
 
   chatSendBtn.addEventListener('click', sendChat);
   chatInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendChat(); });
+  gameChatSend.addEventListener('click', sendGameChat);
+  gameChatInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendGameChat(); });
+  gameChatClose.addEventListener('click', () => gameChatOverlay.classList.remove('open'));
+
+  // FAB Chat toggle
+  document.getElementById('fabChat').addEventListener('click', (e) => {
+    e.stopPropagation();
+    gameChatOverlay.classList.toggle('open');
+    if (gameChatOverlay.classList.contains('open')) {
+      gameChatInput.focus();
+      document.getElementById('fabChat').classList.remove('has-unread');
+    }
+  });
 
   // ── Tab switching ─────────────────────────────────────────────────────────
   document.querySelectorAll('.chat-tab').forEach(tab => {
@@ -1007,7 +1717,7 @@
     });
   });
 
-  // ── Action buttons ────────────────────────────────────────────────────────
+  // ── Action buttons (normal mode) ──────────────────────────────────────────
   document.getElementById('btnConnect').addEventListener('click', () => {
     setStatus('waiting', 'connecting...');
     addLog('Connecting...', 'info');
@@ -1019,7 +1729,7 @@
     MatchClient.disconnect();
     setStatus('', 'disconnected');
     showPanel('idle');
-    stopCamera();
+    muteCamera();
     addLog('Cancelled', 'info');
   });
 
@@ -1027,7 +1737,25 @@
     if (cameraOn) stopCamera(); else startCamera();
   });
 
-  document.getElementById('btnRematch').addEventListener('click', () => {
+  document.getElementById('fabCamera').addEventListener('click', () => {
+    if (cameraOn) {
+      stopCamera();
+      document.getElementById('fabCamera').querySelector('svg, i').setAttribute('data-lucide', 'video-off');
+      lucide.createIcons();
+    } else {
+      startCamera();
+      document.getElementById('fabCamera').querySelector('svg, i').setAttribute('data-lucide', 'video');
+      lucide.createIcons();
+    }
+  });
+
+  // btnPlayGame and fabPlayGame handled above by dropdown logic
+
+  function doRematch() {
+    if (gameActive) deactivateGameMode();
+    if (countdownTimer) { clearTimeout(countdownTimer); countdownTimer = null; }
+    countdownOverlay.classList.add('hidden');
+
     remoteVideo.srcObject = null;
     remotePlaceholder.style.display = '';
     remotePlaceholder.querySelector('span').textContent = 'finding new partner...';
@@ -1042,37 +1770,44 @@
     showToast('Finding new match...', 'success');
     showPanel('waiting');
     MatchClient.rematch();
-  });
+  }
 
-  document.getElementById('btnLeave').addEventListener('click', () => {
+  function doLeave() {
+    if (gameActive) deactivateGameMode();
     MatchClient.disconnect();
-    stopCamera();
+    muteCamera();
     setStatus('', 'disconnected');
     showPanel('idle');
     chatMessages.innerHTML = '';
     logMessages.innerHTML  = '';
     addLog('Disconnected', 'info');
+  }
+
+  document.getElementById('btnRematch').addEventListener('click', doRematch);
+  document.getElementById('btnLeave').addEventListener('click', doLeave);
+
+  // ── FAB buttons (game mode) ────────────────────────────────────────────────
+  document.getElementById('fabRematch').addEventListener('click', doRematch);
+  document.getElementById('fabLeave').addEventListener('click', doLeave);
+
+  document.getElementById('fabReport').addEventListener('click', () => {
+    if (hasReported || !MatchClient.sessionId) return;
+    openReportModal();
+  });
+
+  // ── Game result banner buttons ─────────────────────────────────────────────
+  document.getElementById('resultRematch').addEventListener('click', doRematch);
+  document.getElementById('resultStay').addEventListener('click', () => {
+    deactivateGameMode();
+    gameResultBanner.classList.remove('visible');
+    showToast('Back to chat!', 'success');
   });
 
   // ── Report flow ───────────────────────────────────────────────────────────
-  /**
-   * Three-step flow:
-   *   1. User clicks Report  →  modal opens.
-   *   2. User clicks "Submit report" inside modal  →  MatchClient.sendReport()
-   *      fires {"type":"report_peer"} over the WebSocket.
-   *   3. Server responds with {"type":"report_ack"} or {"type":"error"}.
-   *      We listen for those in a one-time message interceptor added below.
-   *
-   * Button state machine:
-   *   default  →  (modal confirm)  →  loading…  →  reported (disabled)
-   *                                               ↘  error: re-enabled
-   */
-
   function openReportModal() {
     reportBackdrop.classList.add('open');
     reportConfirmBtn.disabled = false;
     reportConfirmBtn.innerHTML = '<i class="bi bi-flag-fill"></i> Submit report';
-    // trap focus for a11y
     reportConfirmBtn.focus();
   }
 
@@ -1082,36 +1817,26 @@
 
   btnReport.addEventListener('click', () => {
     if (hasReported || btnReport.disabled) return;
-    // Must be in a session to report
-    if (!MatchClient.sessionId) {
-      showToast('No active session to report', 'warn');
-      return;
-    }
+    if (!MatchClient.sessionId) { showToast('No active session to report', 'warn'); return; }
     openReportModal();
   });
 
   reportCancelBtn.addEventListener('click', closeReportModal);
 
-  // Close on backdrop click (outside the modal card)
   reportBackdrop.addEventListener('click', e => {
     if (e.target === reportBackdrop) closeReportModal();
   });
 
-  // Close on Escape
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && reportBackdrop.classList.contains('open')) closeReportModal();
   });
 
   reportConfirmBtn.addEventListener('click', () => {
-    // Optimistic UI — show spinner while we wait for the server ack
     reportConfirmBtn.disabled = true;
     reportConfirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
 
-    // Wire a ONE-TIME listener for the server's reply before sending,
-    // so we don't miss a fast response
     const off = _onReportResponse(({ type, message }) => {
       if (type === 'report_ack') {
-        // Success
         hasReported = true;
         btnReport.disabled = true;
         btnReport.classList.add('reported');
@@ -1120,7 +1845,6 @@
         addLog('Report submitted', 'event');
         showToast('Report submitted. Thank you.', 'success');
       } else {
-        // Error from server — re-enable so user can try again
         reportConfirmBtn.disabled = false;
         reportConfirmBtn.innerHTML = '<i class="bi bi-flag-fill"></i> Submit report';
         showToast(message || 'Could not submit report', 'error');
@@ -1130,9 +1854,8 @@
 
     MatchClient.sendReport();
 
-    // Safety net: if no response in 6 s, assume network issue and re-enable
     setTimeout(() => {
-      off();  // remove the listener
+      off();
       if (!hasReported) {
         reportConfirmBtn.disabled = false;
         reportConfirmBtn.innerHTML = '<i class="bi bi-flag-fill"></i> Submit report';
@@ -1142,50 +1865,26 @@
     }, 6000);
   });
 
-  /**
-   * _onReportResponse(callback)
-   * ────────────────────────────
-   * Temporarily patches MatchClient's internal message routing to intercept
-   * the next report_ack or error message, then restores the original handler.
-   * Returns an `off()` function to cancel the listener early (used by the
-   * timeout above).
-   *
-   * We do this instead of adding a permanent `onReportAck` callback because:
-   *  a) it doesn't require changing the MatchClient API surface, and
-   *  b) errors during the report flow shouldn't swallow unrelated errors.
-   */
   function _onReportResponse(callback) {
-    const originalOnError = MatchClient._cfg_onError || MatchClient.configure.__closure_cfg?.onError;
-
-    // We extend the existing onError and add a new onReportAck via configure()
     let fired = false;
 
     function handleAck(msg) {
       if (fired) return;
-      fired = true;
-      off();  // clean up
+      fired = true; off();
       callback({ type: 'report_ack' });
     }
 
     function handleErr(msg) {
       if (fired) return;
-      // Only intercept errors that look like a report failure
       if (typeof msg === 'string' && msg.toLowerCase().includes('report')) {
-        fired = true;
-        off();
+        fired = true; off();
         callback({ type: 'error', message: msg });
       }
     }
 
-    // Patch via configure() — MatchClient.configure merges into cfg
-    const prevOnError = null;   // captured from cfg via closure below
-    MatchClient.configure({
-      onReportAck: handleAck,   // new callback — router will call this
-      onError:     handleErr,   // wrap error to intercept report-specific ones
-    });
+    MatchClient.configure({ onReportAck: handleAck, onError: handleErr });
 
     function off() {
-      // Restore neutral handlers so unrelated errors keep working
       MatchClient.configure({
         onReportAck: () => {},
         onError: (msg) => addLog(`Error: ${msg}`, 'warn'),
@@ -1195,36 +1894,12 @@
     return off;
   }
 
-  // ── Update MatchClient router to call onReportAck ─────────────────────────
-  // We configure a handler for the new "report_ack" server message type.
-  // This is already in cfg — the router in match_client.js routes
-  // case "report_ack" to cfg.onReportAck (we add that case below in a
-  // compatibility shim so older match_client versions also work).
-  //
-  // If you are on the hardened match_client.js from this session, add this
-  // case to the _route() switch:
-  //
-  //   case "report_ack":
-  //     if (typeof cfg.onReportAck === 'function') cfg.onReportAck(msg);
-  //     break;
-  //
-  // The shim below patches it at runtime for zero-change compatibility:
+  // Patch MatchClient.connect to route report_ack (compatibility shim)
   (function patchMatchClientRouter() {
-    // We intercept WebSocket onmessage by wrapping the internal _route via
-    // a secondary onmessage handler on the same ws object after connect().
-    // Simpler: override MatchClient configure to inject a wrapper on connect.
     const origConnect = MatchClient.connect.bind(MatchClient);
     MatchClient.connect = function () {
       origConnect();
-      // After connect() opens the WS, patch ws.onmessage on the next tick
-      setTimeout(() => {
-        // Access ws indirectly: MatchClient exposes nothing, so we attach
-        // a secondary listener at the document level via a CustomEvent bridge.
-        // Instead, just wire through the cfg.onReportAck path by ensuring
-        // the existing onError callback checks for report_ack frames.
-        // This is handled by the _onReportResponse listener above —
-        // no further patching required when match_client.js routes report_ack.
-      }, 0);
+      setTimeout(() => {}, 0);
     };
   })();
 

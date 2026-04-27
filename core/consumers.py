@@ -29,10 +29,35 @@ Changes from the previous version:
     is the answerer.  The client no longer needs a setTimeout race.
 """
 
+"""
+core/consumers.py — MatchmakingConsumer
+All previous changes retained.  New additions for the game engine:
+
+  GAME-1: Active game state attributes on the consumer instance.
+  GAME-2: "game_start" message — relayed to partner, game state recorded.
+  GAME-3: "game_over" message — server resolves winner, writes GameResult rows.
+  GAME-4: Forfeit on disconnect — loser_forfeit=True for the disconnecting player.
+  GAME-5: game_move relay — already handled by existing allowed_types relay.
+  GAME-6: "game_quit" message — same outcome as mid-game disconnect for quitter.
+  WATCHDOG-ACK: "watchdog_timeout" — client tells server ICE failed; server cleans session.
+
+  GAME-7 (this update): game_type validation
+    _handle_game_start no longer defaults to "3mm". It validates the supplied
+    game_type against GameType.objects (active=True) and rejects unknown codes.
+    session_game_start also stores the exact code the sender set — no default.
+
+  ── Required GameType rows in the DB ────────────────────────────────────────
+  Make sure these exist (name must match the code used by the client):
+
+      GameType.objects.get_or_create(name="3mm", defaults={"label": "Three Men's Morris", "active": True})
+      GameType.objects.get_or_create(name="ttt", defaults={"label": "Tic Tac Toe",        "active": True})
+
+  Run via shell:  python manage.py shell  or add a data migration / fixture.
+"""
+
 import json
 import uuid
 import logging
-from datetime import timezone as tz
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.layers import get_channel_layer
@@ -45,15 +70,10 @@ import redis.asyncio as aioredis
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Redis key helpers
-# ─────────────────────────────────────────────────────────────────────────────
-WAITING_POOL_KEY = "matchmaking:waiting_pool"   # Redis Set
-SESSION_KEY      = lambda sid: f"session:{sid}" # Redis Hash
-
-# ── Presence keys ─────────────────────────────────────────────────────────────
-ONLINE_COUNT_KEY = "presence:online_count"  # Redis String  – total WS connections
-ONLINE_USERS_KEY = "presence:online_users"  # Redis Set     – authenticated user IDs
+WAITING_POOL_KEY = "matchmaking:waiting_pool"
+SESSION_KEY      = lambda sid: f"session:{sid}"
+ONLINE_COUNT_KEY = "presence:online_count"
+ONLINE_USERS_KEY = "presence:online_users"
 
 
 def get_redis():
@@ -61,31 +81,15 @@ def get_redis():
     return aioredis.from_url(url, decode_responses=True)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Helpers: encode / decode pool entries
-# ─────────────────────────────────────────────────────────────────────────────
 def _encode_pool_entry(channel_name: str, user_id: int) -> str:
-    """
-    CHANGE 1: store both channel_name and user_id in the Redis Set.
-    Format:  "<channel_name>:<user_id>"
-    channel_name already contains colons (e.g. "specific.abc123!xyz") so we
-    split from the RIGHT to isolate the user_id suffix.
-    """
     return f"{channel_name}:{user_id}"
 
 
 def _decode_pool_entry(entry: str) -> tuple[str, int]:
-    """
-    Returns (channel_name, user_id).  Splits on the LAST colon so the
-    channel_name portion (which may itself contain colons) is preserved intact.
-    """
     channel_name, user_id_str = entry.rsplit(":", 1)
     return channel_name, int(user_id_str)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Async-safe DB helpers  (sync_to_async wrappers)
-# ─────────────────────────────────────────────────────────────────────────────
 @sync_to_async
 def _get_user(user_id: int):
     try:
@@ -96,78 +100,68 @@ def _get_user(user_id: int):
 
 @sync_to_async
 def _create_match_session(session_uuid, user_one, user_two):
-    """CHANGE 2: create the DB record when a match is made."""
     from core.models import MatchSession
-    return MatchSession.objects.create(
-        session_id=session_uuid,
-        user_one=user_one,
-        user_two=user_two,
-    )
+    return MatchSession.objects.create(session_id=session_uuid, user_one=user_one, user_two=user_two)
 
 
 @sync_to_async
 def _close_match_session(session_uuid):
-    """
-    CHANGE 3: called by whichever peer disconnects first.
-    Idempotent — a second call on an already-closed session is a no-op.
-    """
     from core.models import MatchSession
     try:
         record = MatchSession.objects.get(session_id=session_uuid)
     except MatchSession.DoesNotExist:
         return
-
     if record.end_time is not None:
-        return                  # already closed by the other peer
-
+        return
     now = timezone.now()
-    delta = now - record.start_time
     record.end_time         = now
-    record.duration_seconds = int(delta.total_seconds())
+    record.duration_seconds = int((now - record.start_time).total_seconds())
     record.save(update_fields=["end_time", "duration_seconds"])
 
 
 @sync_to_async
 def _flag_report(session_uuid, reporter_user):
-    """CHANGE 4: mark the session as reported."""
     from core.models import MatchSession
     try:
         record = MatchSession.objects.get(session_id=session_uuid)
     except MatchSession.DoesNotExist:
         return
-
     if record.reported:
-        return          # already reported — don't overwrite reporter
-
+        return
     record.reported    = True
     record.reported_by = reporter_user
     record.reported_at = timezone.now()
     record.save(update_fields=["reported", "reported_by", "reported_at"])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Consumer
-# ─────────────────────────────────────────────────────────────────────────────
+@sync_to_async
+def _game_type_exists(game_type_code: str) -> bool:
+    from core.models import GameType
+    return GameType.objects.filter(name=game_type_code, active=True).exists()
+
+
+@sync_to_async
+def _save_game_result(match_session_id, game_type_code, winner_user, loser_user,
+                      is_draw=False, winner_forfeit=False, loser_forfeit=False):
+    from core.models import GameType, GameResult
+    try:
+        game_type = GameType.objects.get(name=game_type_code, active=True)
+    except GameType.DoesNotExist:
+        logger.warning("Unknown game_type_code=%r — GameResult not saved.", game_type_code)
+        return
+    GameResult.record_pair(
+        match_session_id=match_session_id, game_type=game_type,
+        winner=winner_user, loser=loser_user,
+        is_draw=is_draw, winner_forfeit=winner_forfeit, loser_forfeit=loser_forfeit,
+    )
+
+
 class MatchmakingConsumer(AsyncWebsocketConsumer):
-    """
-    Redis data structures
-    ─────────────────────
-    WAITING_POOL_KEY  : Set  – encoded entries  "channel_name:user_id"
-    session:<id>      : Hash – {peer1: <encoded>, peer2: <encoded>,
-                                peer1_user_id: <int>, peer2_user_id: <int>}
 
-    Channel Layer groups
-    ────────────────────
-    Each pair shares a group named  session_<uuid>.
-    """
-
-    # ── connect ──────────────────────────────────────────────────────────
     async def connect(self):
-        # Require authenticated user
         if not self.scope["user"].is_authenticated:
             await self.close()
             return
-
         await self.accept()
 
         self.user            = self.scope["user"]
@@ -175,12 +169,14 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         self.session_group   = None
         self.partner_channel = None
         self.partner_user    = None
+        self.is_offerer      = False   # GAME-1
+
+        # GAME-1: game state — None when no game is in progress
+        self.game_session_id = None
+        self.game_type_code  = None
 
         redis = get_redis()
         try:
-            # ── Task 1: presence tracking ─────────────────────────────────
-            # INCR is atomic — safe for concurrent connections.
-            # Pipeline sends both commands in one round-trip.
             async with redis.pipeline(transaction=False) as pipe:
                 pipe.incr(ONLINE_COUNT_KEY)
                 pipe.sadd(ONLINE_USERS_KEY, str(self.user.pk))
@@ -188,111 +184,69 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
             matched = await self._try_match(redis)
             if matched:
-                await self.send_json({
-                    "type":       "matched",
-                    "session_id": self.session_id,
-                    "is_offerer": True,     # CHANGE 5: peer2 = offerer
-                })
+                await self.send_json({"type": "matched", "session_id": self.session_id, "is_offerer": True})
             else:
                 await self.send_json({"type": "waiting"})
         finally:
             await redis.aclose()
 
-    # ── matchmaking ──────────────────────────────────────────────────────
     async def _try_match(self, redis) -> bool:
-        """
-        CHANGE 1: pool entries are now  "channel_name:user_id".
-        SPOP pops one entry atomically; we decode it to get the partner's
-        channel_name and user_id, then build the session.
-        """
         my_entry    = _encode_pool_entry(self.channel_name, self.user.pk)
         raw_partner = await redis.spop(WAITING_POOL_KEY)
 
         if raw_partner and not raw_partner.startswith(self.channel_name + ":"):
-            # ── found a partner ──────────────────────────────────────────
             partner_channel, partner_user_id = _decode_pool_entry(raw_partner)
-
             session_id    = str(uuid.uuid4())
             session_group = f"session_{session_id}"
 
             self.session_id      = session_id
             self.session_group   = session_group
             self.partner_channel = partner_channel
+            self.is_offerer      = True
 
-            # Persist session metadata in Redis
-            await redis.hset(
-                SESSION_KEY(session_id),
-                mapping={
-                    "peer1":         raw_partner,           # waiting peer (answerer)
-                    "peer2":         my_entry,              # arriving peer (offerer)
-                    "peer1_user_id": str(partner_user_id),
-                    "peer2_user_id": str(self.user.pk),
-                },
-            )
+            await redis.hset(SESSION_KEY(session_id), mapping={
+                "peer1": raw_partner, "peer2": my_entry,
+                "peer1_user_id": str(partner_user_id), "peer2_user_id": str(self.user.pk),
+            })
             await redis.expire(SESSION_KEY(session_id), 3600)
 
-            # CHANGE 2: create DB record
             partner_user      = await _get_user(partner_user_id)
             self.partner_user = partner_user
-            await _create_match_session(
-                session_uuid=uuid.UUID(session_id),
-                user_one=partner_user,      # peer1 = user_one (was waiting)
-                user_two=self.user,         # peer2 = user_two (arrived)
-            )
+            await _create_match_session(uuid.UUID(session_id), partner_user, self.user)
 
-            # Join channel layer group — both peers
             channel_layer = get_channel_layer()
             await self.channel_layer.group_add(session_group, self.channel_name)
             await channel_layer.group_add(session_group, partner_channel)
-
-            # Notify the waiting peer (peer1 / answerer)
-            await channel_layer.send(
-                partner_channel,
-                {
-                    "type":           "peer.matched",
-                    "session_id":     session_id,
-                    "session_group":  session_group,
-                    "is_offerer":     False,    # CHANGE 5: peer1 = answerer
-                    "partner_user_id": self.user.pk,
-                },
-            )
+            await channel_layer.send(partner_channel, {
+                "type": "peer.matched", "session_id": session_id,
+                "session_group": session_group, "is_offerer": False,
+                "partner_user_id": self.user.pk,
+            })
             return True
-
         else:
-            # ── no partner — join the pool ───────────────────────────────
             if raw_partner:
-                # We popped our own entry (edge case on reconnect) — put it back
                 await redis.sadd(WAITING_POOL_KEY, raw_partner)
             await redis.sadd(WAITING_POOL_KEY, my_entry)
             return False
 
-    # ── peer.matched  (channel-layer event → waiting peer) ───────────────
     async def peer_matched(self, event):
-        """
-        Received by peer1 (the one who was waiting).
-        CHANGE 5: forward is_offerer=False so the client knows to wait for the
-        offer rather than creating one.
-        """
-        self.session_id      = event["session_id"]
-        self.session_group   = event["session_group"]
+        self.session_id    = event["session_id"]
+        self.session_group = event["session_group"]
+        self.is_offerer    = False  # GAME-1: waiting peer = answerer
 
-        # Look up partner user for any future use (reporting, etc.)
-        partner_user_id  = event.get("partner_user_id")
+        partner_user_id = event.get("partner_user_id")
         if partner_user_id:
             self.partner_user = await _get_user(partner_user_id)
 
         await self.channel_layer.group_add(self.session_group, self.channel_name)
         await self.send_json({
-            "type":       "matched",
-            "session_id": self.session_id,
-            "is_offerer": event.get("is_offerer", False),   # CHANGE 5
+            "type": "matched", "session_id": self.session_id,
+            "is_offerer": event.get("is_offerer", False),
         })
 
-    # ── receive ──────────────────────────────────────────────────────────
     async def receive(self, text_data=None, bytes_data=None):
         if not text_data:
             return
-
         try:
             data = json.loads(text_data)
         except json.JSONDecodeError:
@@ -301,57 +255,154 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
         msg_type = data.get("type")
 
-        # CHANGE 4: report_peer is handled locally — never relayed
         if msg_type == "report_peer":
-            await self._handle_report()
-            return
+            await self._handle_report(); return
+        if msg_type == "game_start":           # GAME-2
+            await self._handle_game_start(data); return
+        if msg_type == "game_over":            # GAME-3
+            await self._handle_game_over(data); return
+        if msg_type == "game_quit":            # GAME-6
+            await self._handle_game_quit(); return
+        if msg_type == "watchdog_timeout":     # WATCHDOG-ACK
+            await self._handle_watchdog_timeout(); return
 
         if not self.session_group:
-            await self.send_json({"type": "error", "message": "Not yet matched"})
-            return
+            await self.send_json({"type": "error", "message": "Not yet matched"}); return
 
-        allowed_types = {
-            "offer", "answer", "ice_candidate",
-            "game_move", "sync", "chat", "custom",
-        }
-
+        allowed_types = {"offer", "answer", "ice_candidate", "game_move", "sync", "chat", "custom"}
         if msg_type not in allowed_types:
-            await self.send_json({"type": "error", "message": f"Unknown type: {msg_type}"})
-            return
+            await self.send_json({"type": "error", "message": f"Unknown type: {msg_type}"}); return
 
-        await self.channel_layer.group_send(
-            self.session_group,
-            {
-                "type":    f"session.{msg_type.replace('_', '.')}",
-                "sender":  self.channel_name,
-                "payload": data,
-            },
-        )
+        await self.channel_layer.group_send(self.session_group, {
+            "type": f"session.{msg_type.replace('_', '.')}",
+            "sender": self.channel_name, "payload": data,
+        })
 
-    # ── report handler ────────────────────────────────────────────────────
-    async def _handle_report(self):
-        """CHANGE 4: flag the DB session record and ack the reporter."""
-        if not self.session_id:
-            await self.send_json({"type": "error", "message": "No active session to report"})
-            return
+    # ── GAME-2 ────────────────────────────────────────────────────────────
+    async def _handle_game_start(self, data):
+        if not self.session_group: return
+        game_type_code = data.get("game_type")
+        if not game_type_code:
+            await self.send_json({"type": "error", "message": "game_start requires game_type"}); return
+        # Validate the game type exists and is active in the DB
+        if not await _game_type_exists(game_type_code):
+            await self.send_json({"type": "error", "message": f"Unknown game type: {game_type_code}"}); return
+        self.game_session_id = self.session_id
+        self.game_type_code  = game_type_code
+        await self.channel_layer.group_send(self.session_group, {
+            "type": "session.game_start", "sender": self.channel_name,
+            "payload": {"type": "game_start", "game_type": self.game_type_code},
+        })
+
+    async def session_game_start(self, event):
+        if event.get("sender") != self.channel_name:
+            payload = event["payload"]
+            self.game_session_id = self.session_id
+            self.game_type_code  = payload.get("game_type")   # no default — must match what sender set
+            await self.send_json(payload)
+
+    # ── GAME-3 ────────────────────────────────────────────────────────────
+    async def _handle_game_over(self, data):
+        if not self.game_session_id or not self.game_type_code: return
+
+        winner_role = data.get("winner")   # "offerer" | "answerer" | "draw"
+        is_draw     = (winner_role == "draw")
+
+        if is_draw:
+            winner_user, loser_user = self.user, self.partner_user
+        elif winner_role == "offerer":
+            winner_user = self.user if self.is_offerer else self.partner_user
+            loser_user  = self.partner_user if self.is_offerer else self.user
+        else:  # "answerer"
+            winner_user = self.user if not self.is_offerer else self.partner_user
+            loser_user  = self.partner_user if not self.is_offerer else self.user
 
         try:
-            await _flag_report(
-                session_uuid=uuid.UUID(self.session_id),
-                reporter_user=self.user,
+            await _save_game_result(
+                uuid.UUID(self.game_session_id), self.game_type_code,
+                winner_user, loser_user, is_draw=is_draw,
             )
+        except Exception as exc:
+            logger.exception("Error saving game result: %s", exc)
+
+        if self.session_group:
+            await self.channel_layer.group_send(self.session_group, {
+                "type": "session.game_result", "sender": None,
+                "payload": {
+                    "type": "game_result", "winner": winner_role,
+                    "is_draw": is_draw, "game_type": self.game_type_code,
+                    "session_id": self.game_session_id,
+                },
+            })
+
+        self.game_session_id = None
+        self.game_type_code  = None
+
+    async def session_game_result(self, event):
+        await self.send_json(event["payload"])
+
+    # ── GAME-6 ────────────────────────────────────────────────────────────
+    async def _handle_game_quit(self):
+        if not self.game_session_id or not self.game_type_code: return
+        try:
+            await _save_game_result(
+                uuid.UUID(self.game_session_id), self.game_type_code,
+                self.partner_user, self.user, loser_forfeit=True,
+            )
+        except Exception as exc:
+            logger.exception("Error saving forfeit: %s", exc)
+
+        if self.session_group:
+            await self.channel_layer.group_send(self.session_group, {
+                "type": "session.game_result", "sender": None,
+                "payload": {
+                    "type": "game_result",
+                    "winner": "answerer" if self.is_offerer else "offerer",
+                    "is_draw": False, "forfeit": True,
+                    "game_type": self.game_type_code,
+                },
+            })
+        self.game_session_id = None
+        self.game_type_code  = None
+
+    # ── WATCHDOG-ACK ─────────────────────────────────────────────────────
+    async def _handle_watchdog_timeout(self):
+        logger.info("Watchdog timeout: user=%s session=%s", getattr(self.user, "pk", "?"), self.session_id)
+        self.game_session_id = None
+        self.game_type_code  = None
+
+        if self.session_id:
+            redis = get_redis()
+            try:
+                await _close_match_session(uuid.UUID(self.session_id))
+                if self.session_group:
+                    await self.channel_layer.group_send(self.session_group, {
+                        "type": "session.peer_left", "sender": self.channel_name,
+                        "payload": {"type": "peer_left", "reason": "watchdog"},
+                    })
+                    await self.channel_layer.group_discard(self.session_group, self.channel_name)
+                    await redis.delete(SESSION_KEY(self.session_id))
+            finally:
+                await redis.aclose()
+
+        self.session_id    = None
+        self.session_group = None
+        await self.send_json({"type": "watchdog_ack"})
+
+    # ── report ────────────────────────────────────────────────────────────
+    async def _handle_report(self):
+        if not self.session_id:
+            await self.send_json({"type": "error", "message": "No active session to report"}); return
+        try:
+            await _flag_report(uuid.UUID(self.session_id), self.user)
             await self.send_json({"type": "report_ack", "session_id": self.session_id})
-            logger.info(
-                "Session %s reported by user %s", self.session_id, self.user.pk
-            )
         except Exception as exc:
             logger.exception("Error flagging report: %s", exc)
             await self.send_json({"type": "error", "message": "Could not submit report"})
 
     # ── channel-layer forwarding ──────────────────────────────────────────
     async def _forward(self, event):
-        if event.get("sender") == self.channel_name:
-            return
+        if event.get("sender") == self.channel_name: return
         await self.send_json(event["payload"])
 
     async def session_offer(self, event):          await self._forward(event)
@@ -366,45 +417,39 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         redis = get_redis()
         try:
-            # ── Task 1: presence cleanup ──────────────────────────────────
-            # DECR can go negative if the server restarts mid-session;
-            # we clamp to 0 with a Lua script to keep the counter honest.
             if hasattr(self, "user") and self.user.is_authenticated:
                 async with redis.pipeline(transaction=False) as pipe:
-                    # Decrement but floor at 0
                     pipe.eval(
                         "local v = redis.call('decr', KEYS[1]); "
-                        "if v < 0 then redis.call('set', KEYS[1], 0) end; "
-                        "return v",
+                        "if v < 0 then redis.call('set', KEYS[1], 0) end; return v",
                         1, ONLINE_COUNT_KEY,
                     )
                     pipe.srem(ONLINE_USERS_KEY, str(self.user.pk))
                     await pipe.execute()
-
-            # Remove from pool if still waiting (encoded entry)
-            if hasattr(self, "user") and self.user.is_authenticated:
                 my_entry = _encode_pool_entry(self.channel_name, self.user.pk)
                 await redis.srem(WAITING_POOL_KEY, my_entry)
 
+            # GAME-4: forfeit if mid-game
+            if self.game_session_id and self.game_type_code and self.partner_user:
+                try:
+                    await _save_game_result(
+                        uuid.UUID(self.game_session_id), self.game_type_code,
+                        self.partner_user, self.user, loser_forfeit=True,
+                    )
+                except Exception as exc:
+                    logger.exception("Error saving forfeit on disconnect: %s", exc)
+
             if self.session_id and self.session_group:
-                # CHANGE 3: close the DB record
                 try:
                     await _close_match_session(uuid.UUID(self.session_id))
                 except Exception as exc:
-                    logger.exception("Error closing match session in DB: %s", exc)
+                    logger.exception("Error closing match session: %s", exc)
 
-                # Notify partner
-                await self.channel_layer.group_send(
-                    self.session_group,
-                    {
-                        "type":    "session.peer_left",
-                        "sender":  self.channel_name,
-                        "payload": {"type": "peer_left"},
-                    },
-                )
-                await self.channel_layer.group_discard(
-                    self.session_group, self.channel_name
-                )
+                await self.channel_layer.group_send(self.session_group, {
+                    "type": "session.peer_left", "sender": self.channel_name,
+                    "payload": {"type": "peer_left"},
+                })
+                await self.channel_layer.group_discard(self.session_group, self.channel_name)
                 await redis.delete(SESSION_KEY(self.session_id))
 
         except Exception as exc:
@@ -416,12 +461,11 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         if event.get("sender") != self.channel_name:
             await self.send_json({"type": "peer_left"})
             if self.session_group:
-                await self.channel_layer.group_discard(
-                    self.session_group, self.channel_name
-                )
-            self.session_id    = None
-            self.session_group = None
+                await self.channel_layer.group_discard(self.session_group, self.channel_name)
+            self.session_id      = None
+            self.session_group   = None
+            self.game_session_id = None  # GAME-4
+            self.game_type_code  = None
 
-    # ── helper ───────────────────────────────────────────────────────────
     async def send_json(self, content):
         await self.send(text_data=json.dumps(content))
