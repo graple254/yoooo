@@ -1,58 +1,18 @@
 """
 core/consumers.py — MatchmakingConsumer
-─────────────────────────────────────────────────────────────────────────────
-Changes from the previous version:
 
-  CHANGE 1 · Redis pool entries now store  "channel_name:user_id"
-    Previously only channel_name was stored, so there was no way to know which
-    Django User the waiting peer belonged to.  The consumer now encodes both
-    pieces of information in a single string and decodes them wherever needed.
+Fixes applied on top of the previous version:
 
-  CHANGE 2 · MatchSession DB record created on match
-    When two peers are paired, a MatchSession row is inserted with both user
-    FKs and the session UUID.  All DB calls go through sync_to_async wrappers
-    so the async consumer never blocks.
+  FIX-1: session FK populated in _save_game_result
+    record_pair() now receives the MatchSession instance (looked up by UUID)
+    and passes it as `session=` so the FK column is never NULL.
 
-  CHANGE 3 · MatchSession updated on disconnect
-    The first disconnect for a given session_id writes end_time and
-    duration_seconds.  A second disconnect (the surviving peer) hits an already-
-    closed session and is handled gracefully.
-
-  CHANGE 4 · report_peer message type
-    A client can send {"type": "report_peer"} at any point during a matched
-    session.  The consumer flags the MatchSession row (reported=True,
-    reported_by, reported_at) without interrupting the session.
-
-  CHANGE 5 · is_offerer flag in matched message
-    The server now decides which peer should send the WebRTC offer.  peer2
-    (the one who triggered the match) is the offerer; peer1 (who was waiting)
-    is the answerer.  The client no longer needs a setTimeout race.
-"""
-
-"""
-core/consumers.py — MatchmakingConsumer
-All previous changes retained.  New additions for the game engine:
-
-  GAME-1: Active game state attributes on the consumer instance.
-  GAME-2: "game_start" message — relayed to partner, game state recorded.
-  GAME-3: "game_over" message — server resolves winner, writes GameResult rows.
-  GAME-4: Forfeit on disconnect — loser_forfeit=True for the disconnecting player.
-  GAME-5: game_move relay — already handled by existing allowed_types relay.
-  GAME-6: "game_quit" message — same outcome as mid-game disconnect for quitter.
-  WATCHDOG-ACK: "watchdog_timeout" — client tells server ICE failed; server cleans session.
-
-  GAME-7 (this update): game_type validation
-    _handle_game_start no longer defaults to "3mm". It validates the supplied
-    game_type against GameType.objects (active=True) and rejects unknown codes.
-    session_game_start also stores the exact code the sender set — no default.
-
-  ── Required GameType rows in the DB ────────────────────────────────────────
-  Make sure these exist (name must match the code used by the client):
-
-      GameType.objects.get_or_create(name="3mm", defaults={"label": "Three Men's Morris", "active": True})
-      GameType.objects.get_or_create(name="ttt", defaults={"label": "Tic Tac Toe",        "active": True})
-
-  Run via shell:  python manage.py shell  or add a data migration / fixture.
+  FIX-2: game_over deduplication — only the offerer resolves the result
+    Previously both clients could send "game_over" and both would call
+    _handle_game_over, producing 4 rows instead of 2.  Now only the offerer
+    is authoritative: the answerer's "game_over" is relayed to the offerer
+    via the channel layer, which then does the single DB write.
+    The answerer still receives the game_result broadcast so its UI updates.
 """
 
 import json
@@ -66,6 +26,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from asgiref.sync import sync_to_async
 import redis.asyncio as aioredis
+from .presence import broadcast_presence, presence_connect, presence_disconnect
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -101,7 +62,11 @@ def _get_user(user_id: int):
 @sync_to_async
 def _create_match_session(session_uuid, user_one, user_two):
     from core.models import MatchSession
-    return MatchSession.objects.create(session_id=session_uuid, user_one=user_one, user_two=user_two)
+    return MatchSession.objects.create(
+        session_id=session_uuid,
+        user_one=user_one,
+        user_two=user_two,
+    )
 
 
 @sync_to_async
@@ -140,19 +105,34 @@ def _game_type_exists(game_type_code: str) -> bool:
     return GameType.objects.filter(name=game_type_code, active=True).exists()
 
 
+# FIX-1: look up the MatchSession instance by UUID so record_pair can set the FK
 @sync_to_async
 def _save_game_result(match_session_id, game_type_code, winner_user, loser_user,
                       is_draw=False, winner_forfeit=False, loser_forfeit=False):
-    from core.models import GameType, GameResult
+    from core.models import GameType, GameResult, MatchSession
+
     try:
         game_type = GameType.objects.get(name=game_type_code, active=True)
     except GameType.DoesNotExist:
         logger.warning("Unknown game_type_code=%r — GameResult not saved.", game_type_code)
         return
+
+    # Resolve the MatchSession FK — returns None gracefully for legacy/missing rows
+    try:
+        match_session = MatchSession.objects.get(session_id=match_session_id)
+    except MatchSession.DoesNotExist:
+        match_session = None
+        logger.warning("MatchSession %s not found — session FK will be NULL.", match_session_id)
+
     GameResult.record_pair(
-        match_session_id=match_session_id, game_type=game_type,
-        winner=winner_user, loser=loser_user,
-        is_draw=is_draw, winner_forfeit=winner_forfeit, loser_forfeit=loser_forfeit,
+        match_session_id=match_session_id,
+        game_type=game_type,
+        winner=winner_user,
+        loser=loser_user,
+        is_draw=is_draw,
+        winner_forfeit=winner_forfeit,
+        loser_forfeit=loser_forfeit,
+        match_session=match_session,   # FIX-1: pass instance for FK
     )
 
 
@@ -163,25 +143,22 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             await self.close()
             return
         await self.accept()
-
+ 
         self.user            = self.scope["user"]
         self.session_id      = None
         self.session_group   = None
         self.partner_channel = None
         self.partner_user    = None
-        self.is_offerer      = False   # GAME-1
-
-        # GAME-1: game state — None when no game is in progress
+        self.is_offerer      = False
         self.game_session_id = None
         self.game_type_code  = None
-
+ 
         redis = get_redis()
         try:
-            async with redis.pipeline(transaction=False) as pipe:
-                pipe.incr(ONLINE_COUNT_KEY)
-                pipe.sadd(ONLINE_USERS_KEY, str(self.user.pk))
-                await pipe.execute()
-
+            # ↓ replaces the old pipeline + sadd block
+            await presence_connect(redis, user_pk=self.user.pk)
+            await broadcast_presence(redis)
+ 
             matched = await self._try_match(redis)
             if matched:
                 await self.send_json({"type": "matched", "session_id": self.session_id, "is_offerer": True})
@@ -232,7 +209,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
     async def peer_matched(self, event):
         self.session_id    = event["session_id"]
         self.session_group = event["session_group"]
-        self.is_offerer    = False  # GAME-1: waiting peer = answerer
+        self.is_offerer    = False
 
         partner_user_id = event.get("partner_user_id")
         if partner_user_id:
@@ -257,14 +234,28 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
         if msg_type == "report_peer":
             await self._handle_report(); return
-        if msg_type == "game_start":           # GAME-2
+        if msg_type == "game_start":
             await self._handle_game_start(data); return
-        if msg_type == "game_over":            # GAME-3
-            await self._handle_game_over(data); return
-        if msg_type == "game_quit":            # GAME-6
+        if msg_type == "game_quit":
             await self._handle_game_quit(); return
-        if msg_type == "watchdog_timeout":     # WATCHDOG-ACK
+        if msg_type == "watchdog_timeout":
             await self._handle_watchdog_timeout(); return
+
+        # FIX-2: game_over is routed to the offerer for authoritative resolution.
+        # The answerer relays it; the offerer resolves it.
+        if msg_type == "game_over":
+            if self.is_offerer:
+                # Authoritative side: resolve the result immediately
+                await self._handle_game_over(data)
+            else:
+                # Relay to offerer via the channel layer so only one writer runs
+                if self.session_group:
+                    await self.channel_layer.group_send(self.session_group, {
+                        "type": "session.game_over_relay",
+                        "sender": self.channel_name,
+                        "payload": data,
+                    })
+            return
 
         if not self.session_group:
             await self.send_json({"type": "error", "message": "Not yet matched"}); return
@@ -278,15 +269,23 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             "sender": self.channel_name, "payload": data,
         })
 
-    # ── GAME-2 ────────────────────────────────────────────────────────────
+    # FIX-2: offerer receives the answerer's game_over relay and resolves it
+    async def session_game_over_relay(self, event):
+        # Only the offerer should act on this; answerer ignores it
+        if self.is_offerer:
+            await self._handle_game_over(event["payload"])
+
+    # ── game_start ────────────────────────────────────────────────────────
     async def _handle_game_start(self, data):
-        if not self.session_group: return
+        if not self.session_group:
+            return
         game_type_code = data.get("game_type")
         if not game_type_code:
-            await self.send_json({"type": "error", "message": "game_start requires game_type"}); return
-        # Validate the game type exists and is active in the DB
+            await self.send_json({"type": "error", "message": "game_start requires game_type"})
+            return
         if not await _game_type_exists(game_type_code):
-            await self.send_json({"type": "error", "message": f"Unknown game type: {game_type_code}"}); return
+            await self.send_json({"type": "error", "message": f"Unknown game type: {game_type_code}"})
+            return
         self.game_session_id = self.session_id
         self.game_type_code  = game_type_code
         await self.channel_layer.group_send(self.session_group, {
@@ -298,12 +297,20 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         if event.get("sender") != self.channel_name:
             payload = event["payload"]
             self.game_session_id = self.session_id
-            self.game_type_code  = payload.get("game_type")   # no default — must match what sender set
+            self.game_type_code  = payload.get("game_type")
             await self.send_json(payload)
 
-    # ── GAME-3 ────────────────────────────────────────────────────────────
+    # ── game_over (authoritative — offerer only) ──────────────────────────
     async def _handle_game_over(self, data):
-        if not self.game_session_id or not self.game_type_code: return
+        # Guard: if already cleared (e.g. relay arrived after a quit), do nothing
+        if not self.game_session_id or not self.game_type_code:
+            return
+
+        # Snapshot and clear immediately to prevent any second call from writing again
+        game_session_id = self.game_session_id
+        game_type_code  = self.game_type_code
+        self.game_session_id = None
+        self.game_type_code  = None
 
         winner_role = data.get("winner")   # "offerer" | "answerer" | "draw"
         is_draw     = (winner_role == "draw")
@@ -319,7 +326,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
         try:
             await _save_game_result(
-                uuid.UUID(self.game_session_id), self.game_type_code,
+                uuid.UUID(game_session_id), game_type_code,
                 winner_user, loser_user, is_draw=is_draw,
             )
         except Exception as exc:
@@ -330,23 +337,30 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                 "type": "session.game_result", "sender": None,
                 "payload": {
                     "type": "game_result", "winner": winner_role,
-                    "is_draw": is_draw, "game_type": self.game_type_code,
-                    "session_id": self.game_session_id,
+                    "is_draw": is_draw, "game_type": game_type_code,
+                    "session_id": game_session_id,
                 },
             })
 
+    async def session_game_result(self, event):
+        # Both peers receive this; also clear game state on the answerer side
+        self.game_session_id = None
+        self.game_type_code  = None
+        await self.send_json(event["payload"])
+
+    # ── game_quit ─────────────────────────────────────────────────────────
+    async def _handle_game_quit(self):
+        if not self.game_session_id or not self.game_type_code:
+            return
+
+        game_session_id = self.game_session_id
+        game_type_code  = self.game_type_code
         self.game_session_id = None
         self.game_type_code  = None
 
-    async def session_game_result(self, event):
-        await self.send_json(event["payload"])
-
-    # ── GAME-6 ────────────────────────────────────────────────────────────
-    async def _handle_game_quit(self):
-        if not self.game_session_id or not self.game_type_code: return
         try:
             await _save_game_result(
-                uuid.UUID(self.game_session_id), self.game_type_code,
+                uuid.UUID(game_session_id), game_type_code,
                 self.partner_user, self.user, loser_forfeit=True,
             )
         except Exception as exc:
@@ -359,13 +373,11 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                     "type": "game_result",
                     "winner": "answerer" if self.is_offerer else "offerer",
                     "is_draw": False, "forfeit": True,
-                    "game_type": self.game_type_code,
+                    "game_type": game_type_code,
                 },
             })
-        self.game_session_id = None
-        self.game_type_code  = None
 
-    # ── WATCHDOG-ACK ─────────────────────────────────────────────────────
+    # ── watchdog ──────────────────────────────────────────────────────────
     async def _handle_watchdog_timeout(self):
         logger.info("Watchdog timeout: user=%s session=%s", getattr(self.user, "pk", "?"), self.session_id)
         self.game_session_id = None
@@ -392,7 +404,8 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
     # ── report ────────────────────────────────────────────────────────────
     async def _handle_report(self):
         if not self.session_id:
-            await self.send_json({"type": "error", "message": "No active session to report"}); return
+            await self.send_json({"type": "error", "message": "No active session to report"})
+            return
         try:
             await _flag_report(uuid.UUID(self.session_id), self.user)
             await self.send_json({"type": "report_ack", "session_id": self.session_id})
@@ -402,7 +415,8 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
 
     # ── channel-layer forwarding ──────────────────────────────────────────
     async def _forward(self, event):
-        if event.get("sender") == self.channel_name: return
+        if event.get("sender") == self.channel_name:
+            return
         await self.send_json(event["payload"])
 
     async def session_offer(self, event):          await self._forward(event)
@@ -413,45 +427,45 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
     async def session_chat(self, event):           await self._forward(event)
     async def session_custom(self, event):         await self._forward(event)
 
-    # ── disconnect ───────────────────────────────────────────────────────
+    # ── disconnect ────────────────────────────────────────────────────────
     async def disconnect(self, close_code):
         redis = get_redis()
         try:
             if hasattr(self, "user") and self.user.is_authenticated:
-                async with redis.pipeline(transaction=False) as pipe:
-                    pipe.eval(
-                        "local v = redis.call('decr', KEYS[1]); "
-                        "if v < 0 then redis.call('set', KEYS[1], 0) end; return v",
-                        1, ONLINE_COUNT_KEY,
-                    )
-                    pipe.srem(ONLINE_USERS_KEY, str(self.user.pk))
-                    await pipe.execute()
+                # ↓ replaces the old eval + srem pipeline
+                await presence_disconnect(redis, user_pk=self.user.pk)
+                await broadcast_presence(redis)
+ 
                 my_entry = _encode_pool_entry(self.channel_name, self.user.pk)
                 await redis.srem(WAITING_POOL_KEY, my_entry)
-
-            # GAME-4: forfeit if mid-game
+ 
+            # Forfeit if mid-game
             if self.game_session_id and self.game_type_code and self.partner_user:
+                game_session_id = self.game_session_id
+                game_type_code  = self.game_type_code
+                self.game_session_id = None
+                self.game_type_code  = None
                 try:
                     await _save_game_result(
-                        uuid.UUID(self.game_session_id), self.game_type_code,
+                        uuid.UUID(game_session_id), game_type_code,
                         self.partner_user, self.user, loser_forfeit=True,
                     )
                 except Exception as exc:
                     logger.exception("Error saving forfeit on disconnect: %s", exc)
-
+ 
             if self.session_id and self.session_group:
                 try:
                     await _close_match_session(uuid.UUID(self.session_id))
                 except Exception as exc:
                     logger.exception("Error closing match session: %s", exc)
-
+ 
                 await self.channel_layer.group_send(self.session_group, {
                     "type": "session.peer_left", "sender": self.channel_name,
                     "payload": {"type": "peer_left"},
                 })
                 await self.channel_layer.group_discard(self.session_group, self.channel_name)
                 await redis.delete(SESSION_KEY(self.session_id))
-
+ 
         except Exception as exc:
             logger.exception("Error during disconnect cleanup: %s", exc)
         finally:
@@ -464,7 +478,7 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                 await self.channel_layer.group_discard(self.session_group, self.channel_name)
             self.session_id      = None
             self.session_group   = None
-            self.game_session_id = None  # GAME-4
+            self.game_session_id = None
             self.game_type_code  = None
 
     async def send_json(self, content):

@@ -11,6 +11,7 @@ Do NOT replace the file — paste from the dashed line downward.
 import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
+from .match_session import MatchSession   # for the match_session_id FK in GameResult
 
 User = get_user_model()   # already imported at top of your models.py — keep one copy
 
@@ -63,6 +64,12 @@ class GameResult(models.Model):
     """
     # ── Identity ──────────────────────────────────────────────────────────
     # Mirrors MatchSession.session_id so results can be joined to video sessions.
+    session = models.ForeignKey(
+        MatchSession,
+        on_delete=models.CASCADE,
+        null=True,  # allow null for legacy records before this was added
+        related_name="game_results",
+    )
     match_session_id = models.UUIDField(
         db_index=True,
         help_text="UUID of the parent MatchSession (not a FK to avoid coupling).",
@@ -116,18 +123,11 @@ class GameResult(models.Model):
     @classmethod
     def record_pair(cls, match_session_id, game_type,
                     winner, loser,
-                    is_draw=False, winner_forfeit=False, loser_forfeit=False):
+                    is_draw=False, winner_forfeit=False, loser_forfeit=False,
+                    match_session=None):   # FIX-1: accept MatchSession instance
         """
         Convenience class method: write both rows atomically.
-
-        Args:
-            match_session_id : UUID
-            game_type        : GameType instance
-            winner           : User who won (or either player if draw)
-            loser            : User who lost (or other player if draw)
-            is_draw          : If True, both get draw_points
-            winner_forfeit   : winner disconnected (treated as loss for winner)
-            loser_forfeit    : loser disconnected mid-game
+        Pass match_session=<MatchSession instance> to populate the FK column.
         """
         from django.db import transaction
 
@@ -138,9 +138,8 @@ class GameResult(models.Model):
             draw_a = draw_b = True
             loss_a = loss_b = False
         elif winner_forfeit:
-            # Quitter loses regardless of board state
-            pts_a = game_type.loss_points   # winner = quitter
-            pts_b = game_type.win_points    # loser  = survivor
+            pts_a = game_type.loss_points
+            pts_b = game_type.win_points
             win_a = False; win_b = True
             draw_a = draw_b = False
             loss_a = True; loss_b = False
@@ -153,6 +152,7 @@ class GameResult(models.Model):
 
         with transaction.atomic():
             cls.objects.create(
+                session=match_session,            # FIX-1
                 match_session_id=match_session_id,
                 game_type=game_type,
                 user=winner,
@@ -162,6 +162,7 @@ class GameResult(models.Model):
                 points_earned=pts_a,
             )
             cls.objects.create(
+                session=match_session,            # FIX-1
                 match_session_id=match_session_id,
                 game_type=game_type,
                 user=loser,

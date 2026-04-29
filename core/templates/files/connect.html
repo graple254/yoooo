@@ -1277,6 +1277,18 @@
   opacity: 0.6;
 }
 
+/* User online count badge */
+@keyframes presence-flash {
+    0%   { opacity: 1; }
+    30%  { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+ 
+.presence-changed {
+    animation: presence-flash 0.5s ease-out;
+}
+
+
   </style>
 </head>
 <body>
@@ -1320,17 +1332,18 @@
           <div class="ruled-line"></div>
           
           <div class="handwritten-title">
-            connect with <br>someone new
+            Meet <br>someone new
           </div>
           
           <div class="handwritten-body">
-            Meet a random human. <br>
-            Video chat. Play games. <br>
-            No awkward silences.
+            Nobody wants to start a <br>
+            conversation with a stranger. <br>
+            Thats why we start it with a game.
           </div>
           
           <div class="highlight-box">
-            <i class="bi bi-check-circle-fill"></i> {{ online_users_count }} online right now
+            <i class="bi bi-check-circle-fill"></i> <span data-presence="online_count"
+      data-presence-animate="true">{{ online_count }}</span> online right now
           </div>
           
           <div class="button-row">
@@ -1612,8 +1625,12 @@
 </div>
 
 <script src="{% static 'files/match_client.js' %}"></script>
+<script src="{% static 'files/presence_widget.js' %}"></script>
 <script src="{% static 'files/games/three_mens_morris.js' %}"></script>
 <script src="{% static 'files/games/tic_tac_toe.js' %}"></script>
+<script src="{% static 'files/games/sudoku.js' %}"></script>
+<script src="{% static 'files/games/checkers.js' %}"></script>
+
 
 <script>
   "use strict";
@@ -2103,6 +2120,22 @@
       status:  "live",
       module:  () => TicTacToe,
       routeMove(msg) { TicTacToe.handleRemoteMove(msg); },
+    },
+    {
+      code:    "cks",
+      label:   "Checkers",
+      icon:    "bi bi-check-square",
+      status:  "live",
+      module:  () => Checkers,
+      routeMove(msg) { Checkers.handleRemoteMove(msg); },
+    },
+    {
+      code:    "sdk",
+      label:   "Sudoku",
+      icon:    "bi bi-grid-3x3-gap-fill",
+      status:  "live",
+      module:  () => Sudoku,
+      routeMove(msg) { Sudoku.handleRemoteMove(msg); },
     },
     // Example — uncomment when Chess module is ready:
     // {
