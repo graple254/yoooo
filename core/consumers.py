@@ -38,7 +38,7 @@ ONLINE_USERS_KEY = "presence:online_users"
 
 
 def get_redis():
-    url = getattr(settings, "REDIS_URL", "redis://127.0.0.1:6379")
+    url = settings.REDIS_URL #attribute error if not set in settings.py
     return aioredis.from_url(url, decode_responses=True)
 
 
