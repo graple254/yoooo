@@ -1,0 +1,11 @@
+[Unit]
+Description=Daphne ASGI Socket for Chichi
+
+[Socket]
+ListenStream=/run/daphne.sock
+SocketUser=ubuntu
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,21 @@
+[Unit]
+Description=Daphne ASGI Server for Chichi
+After=network.target redis-server.service postgresql.service
+Requires=daphne.socket redis-server.service
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/chichi
+EnvironmentFile=/home/ubuntu/chichi/.env
+ExecStart=/home/ubuntu/chichi/venv/bin/daphne \
+    -u /run/daphne.sock \
+    --proxy-headers \
+    yourproject.asgi:application
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

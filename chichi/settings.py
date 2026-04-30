@@ -1,4 +1,5 @@
 from pathlib import Path
+from decouple import config, Csv
 import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -8,13 +9,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-_&#99syx33)#f5oy=-acs8a3!_0lys*-2pz@^*#)b2a6xoz+t#'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', cast=bool, default=False)
 
-ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['https://7384-102-209-76-98.ngrok-free.app']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='localhost')
+CSRF_TRUSTED_ORIGINS = ['https://973a-102-209-76-98.ngrok-free.app']
 
 # Application definition
 
@@ -31,6 +32,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'whitenoise.runserver_nostatic',
     'channels',
     'core',
     'authentication',
@@ -43,16 +45,16 @@ ASGI_APPLICATION = "chichi.asgi.application"
  
 # 3. Channel Layers – Redis backend
 CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6380)],
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [config('REDIS_URL', default='redis://127.0.0.1:6380/0')],
         },
     }
 }
  
 # 4. Redis URL used by the consumer directly for matchmaking Set operations
-REDIS_URL = "redis://127.0.0.1:6380"
+REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6380/0')
 
 # Custom user model
 AUTH_USER_MODEL = 'authentication.CustomUser'

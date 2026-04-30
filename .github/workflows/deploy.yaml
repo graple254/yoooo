@@ -1,0 +1,60 @@
+# .github/workflows/deploy.yml
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host:     ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key:      ${{ secrets.VPS_SSH_KEY }}
+          script:   |
+            # Write .env from GitHub Secrets
+            cat > ~/chichi/.env << EOF
+            SECRET_KEY=${{ secrets.SECRET_KEY }}
+            DEBUG=${{ secrets.DEBUG }}
+            ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}
+            REDIS_URL=${{ secrets.REDIS_URL }}
+            EOF
+
+            # Deploy
+            cd ~/chichi
+            git pull origin main
+            source venv/bin/activate
+            pip install -r requirements.txt
+            python manage.py migrate --noinput
+            python manage.py collectstatic --noinput
+            sudo systemctl restart daphne
+            sudo systemctl reload nginx
+            echo "✅ Deployed successfully"
+
+
+
+
+# VPS_HOST       → your server's public IP address
+#               → works for EC2, GCP, DigitalOcean, any VPS
+
+# VPS_USER       → the SSH username
+#                → ubuntu (EC2, DigitalOcean)
+#                → your-google-username (GCP)
+#                → root (some VPS providers)
+
+# VPS_SSH_KEY    → your private SSH key contents
+#                → on EC2: contents of your .pem file
+#                → on others: contents of ~/.ssh/id_rsa
+#                → the entire thing including
+#                  -----BEGIN RSA PRIVATE KEY-----
+#                  and
+#                  -----END RSA PRIVATE KEY-----
+
+# SECRET_KEY     → output of the get_random_secret_key command
+# DEBUG          → False
+# ALLOWED_HOSTS  → your-server-ip,yourdomain.com
+# REDIS_URL      → redis://127.0.0.1:6379/0
