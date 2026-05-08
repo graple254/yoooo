@@ -1,4 +1,5 @@
 {% load socialaccount %}
+{% url 'connect' as connect_url %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -115,10 +116,17 @@
     <div class="brand">chichi</div>
 
     <!-- only google button -->
-    <a href="{% provider_login_url 'google' next=request.GET.next|default:'connect' %}" class="google-btn">
+
+    <a href="{% provider_login_url 'google' next=connect_url %}" class="google-btn">
         <i class="bi bi-google"></i>
         <span>Sign in with Google</span>
     </a>
+
+    <!-- only instant access text -->
+    <div class="instant-text">
+        <i class="bi bi-lightning-fill"></i>
+        Instant access, no password needed
+    </div>
 
 </div>
 

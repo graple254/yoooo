@@ -1289,9 +1289,160 @@
 }
 
 
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       PAGE LOADER — chichi themed, no circles, narrative driven
+       ═══════════════════════════════════════════════════════════════════════════ */
+    #page-loader {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    #page-loader.loader-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-logo {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: #111111;
+      margin-bottom: 3rem;
+    }
+
+    /* Typewriter terminal block */
+    .loader-terminal {
+      width: min(520px, 92vw);
+      border: 1px solid #e5e5e5;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+
+    .loader-term-bar {
+      background: #f5f5f5;
+      border-bottom: 1px solid #e5e5e5;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .term-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .term-dot:nth-child(1) { background: #e5e5e5; }
+    .term-dot:nth-child(2) { background: #e5e5e5; }
+    .term-dot:nth-child(3) { background: #e5e5e5; }
+
+    .loader-term-body {
+      background: #ffffff;
+      padding: 18px 20px;
+      min-height: 130px;
+      font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: clamp(0.72rem, 2vw, 0.82rem);
+      line-height: 1.8;
+      color: #333333;
+    }
+
+    .loader-line {
+      display: block;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .loader-line.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .loader-line .prompt { color: #999999; margin-right: 8px; user-select: none; }
+    .loader-line .ok     { color: #10b981; font-weight: 600; }
+    .loader-line .warn   { color: #f59e0b; }
+    .loader-line .dim    { color: #bbbbbb; }
+
+    /* Blinking cursor */
+    .loader-cursor {
+      display: inline-block;
+      width: 7px; height: 1.1em;
+      background: #111111;
+      margin-left: 3px;
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* Progress bar — thin line, not a circle */
+    .loader-progress-wrap {
+      width: min(520px, 92vw);
+      height: 2px;
+      background: #f0f0f0;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+
+    .loader-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #111111;
+      border-radius: 2px;
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .loader-tagline {
+      font-size: 0.75rem;
+      color: #bbbbbb;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
   </style>
 </head>
 <body>
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     PAGE LOADER
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div id="page-loader" role="status" aria-label="Loading chichi">
+
+  <div class="loader-logo">chichi</div>
+
+  <div class="loader-terminal">
+    <div class="loader-term-bar">
+      <div class="term-dot"></div>
+      <div class="term-dot"></div>
+      <div class="term-dot"></div>
+    </div>
+    <div class="loader-term-body" id="loaderTermBody">
+      <span class="loader-line" id="ll0">
+        <span class="prompt">›</span>booting conversation engine<span class="loader-cursor" id="loaderCursor"></span>
+      </span>
+    </div>
+  </div>
+
+  <div class="loader-progress-wrap">
+    <div class="loader-progress-bar" id="loaderBar"></div>
+  </div>
+
+  <div class="loader-tagline" id="loaderTagline">hang tight</div>
+
+</div>
+
+
 
 <div class="connect-container">
 
@@ -1401,10 +1552,10 @@
         </div>
         <div class="video-card remote-card" id="remoteCard">
           <video id="remoteVideo" autoplay playsinline></video>
-          <div class="video-label">partner</div>
+          <div class="video-label">friend</div>
           <div class="video-placeholder" id="remotePlaceholder">
             <i class="bi bi-person"></i>
-            <span>waiting for partner...</span>
+            <span>waiting for friend...</span>
           </div>
         </div>
       </div>
@@ -1431,7 +1582,7 @@
           <div class="messages-container" id="chatMessages">
             <div class="empty-chat" id="emptyChatState">
               <i class="bi bi-chat-dots"></i>
-              <p>say hello to your partner</p>
+              <p>say hello to your friend</p>
             </div>
           </div>
           <div class="chat-input-wrapper">
@@ -1626,6 +1777,7 @@
 
 <script src="{% static 'files/match_client.js' %}"></script>
 <script src="{% static 'files/presence_widget.js' %}"></script>
+
 <script src="{% static 'files/games/three_mens_morris.js' %}"></script>
 <script src="{% static 'files/games/tic_tac_toe.js' %}"></script>
 <script src="{% static 'files/games/sudoku.js' %}"></script>
@@ -2310,6 +2462,24 @@
       remoteVideo.srcObject = event.streams[0];
       remotePlaceholder.style.display = 'none';
       addLog('Video stream connected', 'event');
+
+      // Force play — some browsers block autoplay silently
+      // causing white screen even though stream is attached
+      remoteVideo.play().catch(() => {
+        // Autoplay blocked — retry on next user interaction
+        const resumePlay = () => {
+          remoteVideo.play().catch(() => {});
+          document.removeEventListener('click', resumePlay);
+          document.removeEventListener('touchstart', resumePlay);
+        };
+        document.addEventListener('click', resumePlay);
+        document.addEventListener('touchstart', resumePlay);
+      });
+    },
+
+    onVideoCheckFailed() {
+      showToast('Video connection issue — finding a new match...', 'warn');
+      addLog('Video check failed — triggering rematch', 'warn');
     },
 
     onWatchdogTimeout() {
@@ -2484,15 +2654,15 @@
 
     remoteVideo.srcObject = null;
     remotePlaceholder.style.display = '';
-    remotePlaceholder.querySelector('span').textContent = 'finding new partner...';
+    remotePlaceholder.querySelector('span').textContent = 'finding new friend...';
     chatMessages.innerHTML = `
       <div class="empty-chat" id="emptyChatState">
         <i class="bi bi-chat-dots"></i>
-        <p>say hello to your partner</p>
+        <p>say hello to your friend</p>
       </div>`;
     sessionIdDisplay.textContent = '—';
     setStatus('waiting', 'rematching...');
-    addLog('Looking for a new partner', 'event');
+    addLog('Looking for a new friend', 'event');
     showToast('Finding new match...', 'success');
     showPanel('waiting');
     MatchClient.rematch();
@@ -2635,6 +2805,110 @@
 
   // ── Footer Year ───────────────────────────────────────────────────────────────
   document.getElementById('year').textContent = new Date().getFullYear();
+
+  /* ════════════════════════════════════════════════════════════════════════════
+     PAGE LOADER LOGIC
+     ════════════════════════════════════════════════════════════════════════════ */
+  (function () {
+    const loader   = document.getElementById('page-loader');
+    const bar      = document.getElementById('loaderBar');
+    const tagline  = document.getElementById('loaderTagline');
+    const termBody = document.getElementById('loaderTermBody');
+    const cursor   = document.getElementById('loaderCursor');
+
+    // ── Narrative lines ──────────────────────────────────────────────────────
+    // Each entry: [delayMs, html, progressPercent, taglineText]
+    const SCRIPT = [
+      [0,    `<span class="prompt">›</span>booting conversation engine`, 4,  'hang tight'],
+      [420,  `<span class="prompt">›</span>warming up the matchmaking <span class="dim">— still manual tbh</span>`, 14, 'almost there'],
+      [860,  `<span class="prompt">›</span>confirming you are not a bot <span class="ok">✓ probably human</span>`, 26, 'good signs'],
+      [1300, `<span class="prompt">›</span>loading camera permissions <span class="warn">⚠ brace yourself</span>`, 38, 'cameras incoming'],
+      [1680, `<span class="prompt">›</span>importing small talk database <span class="dim">— 4 topics found</span>`, 50, 'so much to say'],
+      [2060, `<span class="prompt">›</span>stress-testing awkward silence handler`, 63, 'testing vibes'],
+      [2400, `<span class="prompt">›</span>recalibrating cosmic serendipity <span class="ok">✓ aligned</span>`, 74, 'fate loading'],
+      [2720, `<span class="prompt">›</span>hiding your search history <span class="ok">✓ done</span>`, 85, 'you are safe'],
+      [3020, `<span class="prompt">›</span>polishing the interface <span class="dim">— unnecessary but nice</span>`, 94, 'almost'],
+      [3280, `<span class="prompt">›</span>ready <span class="ok">✓ let's go</span>`, 100, 'ready'],
+    ];
+
+    let lineCount = 0;
+
+    function addLine(html) {
+      // Move cursor out of last line first
+      if (cursor.parentElement) cursor.remove();
+
+      const span = document.createElement('span');
+      span.className = 'loader-line';
+      span.innerHTML = html;
+      termBody.appendChild(span);
+      // Force reflow then reveal
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          span.classList.add('visible');
+        });
+      });
+      // Append cursor to end of new line
+      span.appendChild(cursor);
+      // Keep only last 5 lines visible (scroll feel)
+      const lines = termBody.querySelectorAll('.loader-line');
+      if (lines.length > 5) {
+        lines[0].style.transition = 'none';
+        lines[0].style.opacity = '0';
+        setTimeout(() => lines[0].remove(), 180);
+      }
+    }
+
+    // Remove the seed line (already in HTML) and replace with scripted run
+    function runScript() {
+      // Remove the placeholder first line from HTML
+      const seedLine = document.getElementById('ll0');
+      if (seedLine) seedLine.remove();
+
+      SCRIPT.forEach(([delay, html, progress, tag], i) => {
+        setTimeout(() => {
+          addLine(html);
+          bar.style.width = progress + '%';
+          tagline.textContent = tag;
+
+          // Last step: dismiss loader
+          if (i === SCRIPT.length - 1) {
+            setTimeout(dismissLoader, 480);
+          }
+        }, delay);
+      });
+    }
+
+    function dismissLoader() {
+      loader.classList.add('loader-hidden');
+      // Remove from DOM after transition so it doesn't trap focus
+      loader.addEventListener('transitionend', () => {
+        loader.remove();
+      }, { once: true });
+    }
+
+    // ── Wait for page resources before starting ───────────────────────────────
+    // We wait for DOMContentLoaded + a minimum display time so the user actually
+    // sees the loader even on fast connections. On slow connections, we wait for
+    // the real load event too.
+    let domReady  = false;
+    let minTimeDone = false;
+
+    function maybeStart() {
+      if (domReady && minTimeDone) runScript();
+    }
+
+    // Minimum display: 300ms (just enough to not flash)
+    setTimeout(() => { minTimeDone = true; maybeStart(); }, 300);
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => { domReady = true; maybeStart(); });
+    } else {
+      domReady = true;
+      maybeStart();
+    }
+
+  })();
+
 </script>
 
 </body>

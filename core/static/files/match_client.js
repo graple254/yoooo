@@ -1,11 +1,11 @@
 /**
- * match_client.js  — hardened + game engine edition
+ * match_client.js  — hardened + game engine + video frame detection edition
  *
  *  ADD 1: Auto-rematch on peer_left (1-second delay, then rematch() fires automatically).
  *         connect.html onPeerLeft should only handle UI now — do NOT call rematch() there.
  *
- *  ADD 2: ICE connection watchdog (12 seconds).
- *         Cancelled on "connected"/"completed". Fires on "failed" or timeout.
+ *  ADD 2: ICE connection watchdog (5 seconds).
+ *         Cancelled on "connected"/"completed". Fires on "failed"/"disconnected" or timeout.
  *         Sends {"type":"watchdog_timeout"} to server; server acks with "watchdog_ack".
  *         cfg.onWatchdogTimeout() lets the UI show a toast before the auto-rematch.
  *
@@ -13,6 +13,12 @@
  *         startGame(code), sendGameOver(winner), sendGameQuit()
  *         cfg.onGameStart(msg), cfg.onGameResult(msg)
  *         MatchClient.isOfferer getter for turn management.
+ *
+ *  ADD 4: Video frame detection.
+ *         After ICE connects, waits 8 seconds then checks getStats() for framesDecoded.
+ *         If remote video track exists but 0 frames decoded → one-way video failure.
+ *         If frames freeze mid-session (no increase in 10s) → frozen video detection.
+ *         Both cases call cfg.onVideoCheckFailed() then trigger the watchdog → rematch.
  *
  *  FIX 1-4 (wss://, ICE queue, offer-after-tracks, TURN) all preserved unchanged.
  */
@@ -29,33 +35,46 @@ const MatchClient = (() => {
             { urls: "stun:stun1.l.google.com:19302" },
             // { urls: "turn:YOUR_HOST:3478", username: "u", credential: "s" },
         ],
-        watchdogMs:         12_000,
-        onWaiting:          () => {},
-        onMatched:          (_sid) => {},
-        onPeerLeft:         () => {},       // UI only — rematch fires automatically
-        onWatchdogTimeout:  () => {},
-        onTrack:            (_e)  => {},
-        onDataChannel:      (_ch) => {},
-        onGameMove:         (_m)  => {},
-        onSync:             (_m)  => {},
-        onChat:             (_m)  => {},
-        onCustom:           (_m)  => {},
-        onGameStart:        (_m)  => {},
-        onGameResult:       (_m)  => {},
-        onIceState:         (_s)  => {},
-        onError:            (_m)  => console.error("[MatchClient]", _m),
+        watchdogMs:          5_000,    // ICE connection timeout
+        videoCheckMs:        6_000,    // wait after ICE connected before checking frames
+        frameMonitorMs:      8_000,   // interval to check for frozen video mid-session
+        onWaiting:           () => {},
+        onMatched:           (_sid) => {},
+        onPeerLeft:          () => {},
+        onWatchdogTimeout:   () => {},
+        onVideoCheckFailed:  () => {},   // ADD 4: one-way or frozen video detected
+        onTrack:             (_e)  => {},
+        onDataChannel:       (_ch) => {},
+        onGameMove:          (_m)  => {},
+        onSync:              (_m)  => {},
+        onChat:              (_m)  => {},
+        onCustom:            (_m)  => {},
+        onGameStart:         (_m)  => {},
+        onGameResult:        (_m)  => {},
+        onIceState:          (_s)  => {},
+        onError:             (_m)  => console.error("[MatchClient]", _m),
     };
 
+    // ── Core state ─────────────────────────────────────────────────────────────
     let ws = null, pc = null, localStream = null;
     let sessionId = null, _isOfferer = false, _isReconnecting = false;
-    let _watchdogTimer = null;
-    let _iceCandidateQueue = [];
 
+    // ── Timer handles ──────────────────────────────────────────────────────────
+    let _watchdogTimer      = null;
+    let _videoCheckTimer    = null;
+    let _frameMonitorTimer  = null;
+
+    // ── ICE + video state ──────────────────────────────────────────────────────
+    let _iceCandidateQueue  = [];
+    let _videoCheckPassed   = false;
+    let _lastFrameCount     = 0;
+
+    // ── Public API ─────────────────────────────────────────────────────────────
     function configure(o)  { Object.assign(cfg, o); }
     function connect()     { _openWebSocket(); }
 
     function rematch() {
-        _cancelWatchdog();
+        _cancelAllTimers();
         _isReconnecting = true;
         _closePeerConnection();
         sessionId = null; _isOfferer = false;
@@ -68,7 +87,7 @@ const MatchClient = (() => {
     }
 
     function disconnect() {
-        _cancelWatchdog();
+        _cancelAllTimers();
         _isReconnecting = false;
         _closePeerConnection();
         if (ws) ws.close(1000, "user-disconnect");
@@ -82,21 +101,21 @@ const MatchClient = (() => {
         }
     }
 
-    // ── Senders ───────────────────────────────────────────────────────────────
-    function sendGameMove(p) { _send({ type: "game_move", ...p }); }
-    function sendSync(p)     { _send({ type: "sync",      ...p }); }
-    function sendChat(t)     { _send({ type: "chat", text: t   }); }
-    function sendCustom(p)   { _send({ type: "custom",    ...p }); }
-    function sendReport()    { _send({ type: "report_peer"      }); }
-    function startGame(code = "3mm")    { _send({ type: "game_start", game_type: code }); }
-    function sendGameOver(winner)       { _send({ type: "game_over", winner }); }
-    function sendGameQuit()             { _send({ type: "game_quit" }); }
+    // ── Senders ────────────────────────────────────────────────────────────────
+    function sendGameMove(p) { _send({ type: "game_move",    ...p }); }
+    function sendSync(p)     { _send({ type: "sync",         ...p }); }
+    function sendChat(t)     { _send({ type: "chat", text: t      }); }
+    function sendCustom(p)   { _send({ type: "custom",       ...p }); }
+    function sendReport()    { _send({ type: "report_peer"         }); }
+    function startGame(code) { _send({ type: "game_start", game_type: code }); }
+    function sendGameOver(w) { _send({ type: "game_over",  winner: w       }); }
+    function sendGameQuit()  { _send({ type: "game_quit"               }); }
 
-    // ── WebSocket ─────────────────────────────────────────────────────────────
+    // ── WebSocket ──────────────────────────────────────────────────────────────
     function _openWebSocket() {
         ws = new WebSocket(cfg.wsUrl);
-        ws.onopen  = () => {};
-        ws.onerror = (e) => cfg.onError(e);
+        ws.onopen    = () => {};
+        ws.onerror   = (e) => cfg.onError(e);
         ws.onmessage = ({ data }) => {
             let msg;
             try { msg = JSON.parse(data); } catch { cfg.onError("Non-JSON frame"); return; }
@@ -111,24 +130,31 @@ const MatchClient = (() => {
         if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
     }
 
-    // ── Router ────────────────────────────────────────────────────────────────
+    // ── Router ─────────────────────────────────────────────────────────────────
     async function _route(msg) {
         switch (msg.type) {
+
             case "waiting":
-                cfg.onWaiting(); break;
+                cfg.onWaiting();
+                break;
 
             case "matched":
-                sessionId = msg.session_id; _isOfferer = !!msg.is_offerer;
+                sessionId   = msg.session_id;
+                _isOfferer  = !!msg.is_offerer;
                 _initPeerConnection();
                 cfg.onMatched(sessionId);
                 if (_isOfferer) await _createOffer();
                 break;
 
-            case "offer":  await _handleOffer(msg.sdp); break;
+            case "offer":
+                await _handleOffer(msg.sdp);
+                break;
 
             case "answer":
                 if (pc) {
-                    await pc.setRemoteDescription(new RTCSessionDescription({ type: "answer", sdp: msg.sdp }));
+                    await pc.setRemoteDescription(
+                        new RTCSessionDescription({ type: "answer", sdp: msg.sdp })
+                    );
                     await _flushCandidateQueue();
                 }
                 break;
@@ -137,29 +163,33 @@ const MatchClient = (() => {
                 if (msg.candidate) {
                     if (pc && pc.remoteDescription) {
                         try { await pc.addIceCandidate(new RTCIceCandidate(msg.candidate)); } catch {}
-                    } else { _iceCandidateQueue.push(msg.candidate); }
+                    } else {
+                        _iceCandidateQueue.push(msg.candidate);
+                    }
                 }
                 break;
 
-            // ADD 1: auto-rematch after 1 s UI delay
+            // ADD 1: auto-rematch after 1s UI delay
             case "peer_left":
-                _cancelWatchdog();
+                _cancelAllTimers();
                 _closePeerConnection();
                 sessionId = null; _isOfferer = false;
-                cfg.onPeerLeft();                       // UI shows "Skipping..."
-                setTimeout(() => rematch(), 1000);      // auto-rematch
+                cfg.onPeerLeft();
+                setTimeout(() => rematch(), 1000);
                 break;
 
-            // ADD 2: server confirmed watchdog session teardown
+            // ADD 2: server confirmed watchdog teardown
             case "watchdog_ack":
-                rematch(); break;
+                rematch();
+                break;
 
             // ADD 3: game engine
-            case "game_start":   cfg.onGameStart(msg);  break;
-            case "game_result":  cfg.onGameResult(msg); break;
+            case "game_start":  cfg.onGameStart(msg);  break;
+            case "game_result": cfg.onGameResult(msg); break;
 
             case "report_ack":
-                if (typeof cfg.onReportAck === "function") cfg.onReportAck(msg); break;
+                if (typeof cfg.onReportAck === "function") cfg.onReportAck(msg);
+                break;
 
             case "game_move": cfg.onGameMove(msg); break;
             case "sync":      cfg.onSync(msg);     break;
@@ -169,44 +199,162 @@ const MatchClient = (() => {
         }
     }
 
-    // ── WebRTC ────────────────────────────────────────────────────────────────
+    // ── WebRTC ─────────────────────────────────────────────────────────────────
     function _initPeerConnection() {
         _closePeerConnection();
         _iceCandidateQueue = [];
-        pc = new RTCPeerConnection({ iceServers: cfg.iceServers, bundlePolicy: "max-bundle", rtcpMuxPolicy: "require" });
+        _videoCheckPassed  = false;
+        _lastFrameCount    = 0;
 
-        _startWatchdog();   // ADD 2
+        pc = new RTCPeerConnection({
+            iceServers:    cfg.iceServers,
+            bundlePolicy:  "max-bundle",
+            rtcpMuxPolicy: "require",
+        });
+
+        _startWatchdog();
 
         pc.onicecandidate = ({ candidate }) => {
             if (candidate) _send({ type: "ice_candidate", candidate: candidate.toJSON() });
         };
+
         pc.oniceconnectionstatechange = () => {
             const s = pc.iceConnectionState;
             cfg.onIceState(s);
-            if (s === "connected" || s === "completed") _cancelWatchdog();   // ADD 2: success
-            else if (s === "failed")                    _triggerWatchdog();  // ADD 2: hard fail
+
+            if (s === "connected" || s === "completed") {
+                _cancelWatchdog();
+                _startVideoCheck();    // ADD 4: ICE ok — now verify frames flowing
+            } else if (s === "failed" || s === "disconnected") {
+                _cancelVideoCheck();
+                _cancelFrameMonitor();
+                _triggerWatchdog();
+            }
         };
+
         pc.ontrack       = (e) => cfg.onTrack(e);
         pc.ondatachannel = (e) => cfg.onDataChannel(e.channel);
+
         if (localStream) localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
     }
 
-    // ADD 2: watchdog
+    // ── Watchdog (ADD 2) ───────────────────────────────────────────────────────
     function _startWatchdog() {
         _cancelWatchdog();
         _watchdogTimer = setTimeout(_triggerWatchdog, cfg.watchdogMs);
     }
+
     function _cancelWatchdog() {
         if (_watchdogTimer !== null) { clearTimeout(_watchdogTimer); _watchdogTimer = null; }
     }
+
     function _triggerWatchdog() {
         _cancelWatchdog();
         cfg.onWatchdogTimeout();
         _send({ type: "watchdog_timeout" });
-        // Safety net: if server doesn't ack in 3 s, rematch anyway
-        setTimeout(() => { if (sessionId !== null) rematch(); }, 3000);
+        // Safety net: if server doesn't ack in 3s, rematch anyway
+        setTimeout(() => {
+            if (sessionId !== null && pc) rematch();
+        }, 3000);
     }
 
+    // ── Video frame detection (ADD 4) ──────────────────────────────────────────
+
+    // Step 1: 8 seconds after ICE connects, check if remote frames are decoding
+    function _startVideoCheck() {
+        _cancelVideoCheck();
+        _videoCheckTimer = setTimeout(async () => {
+            if (!pc || _videoCheckPassed) return;
+            const failed = await _checkRemoteVideoFrames();
+            if (failed) {
+                console.warn("[MatchClient] Video check failed — 0 frames decoded after 8s");
+                cfg.onVideoCheckFailed();
+                _triggerWatchdog();
+            }
+        }, cfg.videoCheckMs);
+    }
+
+    function _cancelVideoCheck() {
+        if (_videoCheckTimer !== null) { clearTimeout(_videoCheckTimer); _videoCheckTimer = null; }
+    }
+
+    // Returns true if there is an inbound video track but zero frames decoded
+    async function _checkRemoteVideoFrames() {
+        if (!pc) return false;
+        try {
+            const stats  = await pc.getStats();
+            let hasVideo = false;
+            let decoded  = 0;
+
+            stats.forEach(report => {
+                if (report.type === "inbound-rtp" && report.kind === "video") {
+                    hasVideo = true;
+                    decoded  = report.framesDecoded ?? 0;
+                }
+            });
+
+            if (!hasVideo) return false;   // no video track at all — not our problem
+
+            if (decoded > 0) {
+                // Frames flowing — start continuous monitor
+                _videoCheckPassed = true;
+                _lastFrameCount   = decoded;
+                _startFrameMonitor();
+                return false;
+            }
+
+            return true;   // has video track, zero frames — one-way failure
+        } catch {
+            return false;   // getStats failed — don't rematch on uncertainty
+        }
+    }
+
+    // Step 2: Once frames are confirmed flowing, monitor every 10s for freezes
+    function _startFrameMonitor() {
+        _cancelFrameMonitor();
+
+        _frameMonitorTimer = setInterval(async () => {
+            if (!pc) { _cancelFrameMonitor(); return; }
+
+            try {
+                const stats = await pc.getStats();
+                stats.forEach(report => {
+                    if (report.type === "inbound-rtp" && report.kind === "video") {
+                        const current = report.framesDecoded ?? 0;
+
+                        if (_lastFrameCount > 0 && current === _lastFrameCount) {
+                            // Frame count hasn't moved in 10 seconds — video frozen
+                            console.warn(
+                                "[MatchClient] Video frozen — framesDecoded stuck at", current
+                            );
+                            _cancelFrameMonitor();
+                            cfg.onVideoCheckFailed();
+                            _triggerWatchdog();
+                        }
+
+                        _lastFrameCount = current;
+                    }
+                });
+            } catch {}
+        }, cfg.frameMonitorMs);
+    }
+
+    function _cancelFrameMonitor() {
+        if (_frameMonitorTimer !== null) {
+            clearInterval(_frameMonitorTimer);
+            _frameMonitorTimer = null;
+            _lastFrameCount    = 0;
+        }
+    }
+
+    // Cancel all timers at once — used in rematch/disconnect/closePeerConnection
+    function _cancelAllTimers() {
+        _cancelWatchdog();
+        _cancelVideoCheck();
+        _cancelFrameMonitor();
+    }
+
+    // ── Offer / Answer / Candidates ────────────────────────────────────────────
     async function _createOffer() {
         if (!pc) return;
         try {
@@ -234,19 +382,26 @@ const MatchClient = (() => {
     }
 
     function _closePeerConnection() {
-        _cancelWatchdog();
+        _cancelAllTimers();
         _iceCandidateQueue = [];
+        _videoCheckPassed  = false;
+        _lastFrameCount    = 0;
         if (pc) {
-            pc.onicecandidate = pc.oniceconnectionstatechange = pc.ontrack = pc.ondatachannel = null;
-            pc.close(); pc = null;
+            pc.onicecandidate          = null;
+            pc.oniceconnectionstatechange = null;
+            pc.ontrack                 = null;
+            pc.ondatachannel           = null;
+            pc.close();
+            pc = null;
         }
     }
 
+    // ── Public interface ───────────────────────────────────────────────────────
     return {
         configure, connect, rematch, disconnect, setLocalStream,
         sendGameMove, sendSync, sendChat, sendCustom, sendReport,
         startGame, sendGameOver, sendGameQuit,
-        get sessionId()  { return sessionId; },
+        get sessionId()  { return sessionId;  },
         get iceState()   { return pc ? pc.iceConnectionState : "none"; },
         get isOfferer()  { return _isOfferer; },
     };

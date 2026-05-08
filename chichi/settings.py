@@ -14,8 +14,8 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', cast=bool, default=False)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='localhost')
-CSRF_TRUSTED_ORIGINS = ['https://973a-102-209-76-98.ngrok-free.app']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=Csv(), default='*')
+CSRF_TRUSTED_ORIGINS = ['https://*.ngrok-free.app']
 
 # Application definition
 
