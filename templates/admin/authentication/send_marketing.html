@@ -1,0 +1,27 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+  <h1>Send Marketing Email</h1>
+  <p>Compose the marketing/promotional email to send.</p>
+
+  <form method="post">{% csrf_token %}
+    {{ form.user_ids }}
+    <table>
+      <tr><th>Subject</th><td>{{ form.subject }}</td></tr>
+      <tr><th>Content</th><td>{{ form.content }}</td></tr>
+      <tr><th>Sender</th><td>{{ form.sender_email }}</td></tr>
+      <tr><th>Recipients</th><td>{{ form.recipient_scope }}</td></tr>
+    </table>
+
+    <p>
+      {% if selected_count %}
+        <strong>{{ selected_count }}</strong> users selected.
+      {% endif %}
+    </p>
+
+    <input type="submit" value="Send" class="default" />
+    <a href="{% url 'admin:authentication_customuser_changelist' %}">Cancel</a>
+  </form>
+
+{% endblock %}

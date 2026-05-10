@@ -113,7 +113,7 @@ ACCOUNT_LOGIN_METHODS = {'email'}
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -212,3 +212,18 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = 'connect' 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Brevo (Sendinblue) email configuration (read from environment)
+# Example .env entries:
+# BREVO_API_KEY=xxxx
+# DEFAULT_FROM_EMAIL=support@chichi.quest
+# ALLOWED_SENDER_EMAILS=support@chichi.quest,info@chichi.quest,welcome@chichi.quest
+BREVO_API_KEY = config('BREVO_API_KEY', default=None)
+ALLOWED_SENDER_EMAILS = config('ALLOWED_SENDER_EMAILS', cast=Csv(), default='support@chichi.quest,info@chichi.quest,welcome@chichi.quest')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=ALLOWED_SENDER_EMAILS[0])
+DEFAULT_FROM_NAME = config('DEFAULT_FROM_NAME', default='Chichi')
+
+# Welcome-specific sender (can override DEFAULT_FROM_EMAIL)
+WELCOME_SENDER_EMAIL = config('WELCOME_SENDER_EMAIL', default='welcome@chichi.quest')
+WELCOME_SENDER_NAME = config('WELCOME_SENDER_NAME', default='Chichi Welcome')
+WELCOME_SUBJECT = config('WELCOME_SUBJECT', default='Welcome to Chichi')
