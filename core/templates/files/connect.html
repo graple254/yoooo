@@ -45,7 +45,6 @@
       border-bottom: 1px solid #e5e5e5;
       flex-wrap: wrap;
       gap: 1rem;
-      /* stays on top during game */
       position: relative;
       z-index: 10;
     }
@@ -95,28 +94,6 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── IDLE ─────────────────────────────────────────────────────────────── */
-    .idle-content {
-      text-align: center;
-      width: 100%; max-width: 500px;
-      margin: 0 auto;
-      padding: 2rem;
-    }
-    @media (max-width: 640px) { .idle-content { max-width: 90%; padding: 1.5rem; } }
-
-    .idle-icon { font-size: 3.5rem; color: #111111; margin-bottom: 1.5rem; }
-    .idle-content h1 {
-      font-size: clamp(1.8rem, 5vw, 2.5rem);
-      font-weight: 600;
-      margin-bottom: 1rem;
-      color: #111111;
-    }
-    .idle-content p {
-      color: #666666; line-height: 1.5;
-      margin-bottom: 2rem;
-      font-size: clamp(0.9rem, 3vw, 1rem);
-    }
-
     /* ── WAITING ──────────────────────────────────────────────────────────── */
     .waiting-content {
       text-align: center; width: 100%; max-width: 500px;
@@ -154,7 +131,6 @@
       transition: opacity 0.4s ease;
     }
 
-    /* Header fades during active game */
     .game-active .matched-header { opacity: 0; pointer-events: none; }
 
     .live-badge {
@@ -169,13 +145,6 @@
     }
 
     /* ── VIDEO CARDS ──────────────────────────────────────────────────────── */
-    /*
-     * PiP MORPHING SYSTEM
-     * -------------------
-     * Default: two video cards rendered in the flow (side-by-side / stacked).
-     * .game-active: both cards leave the flow, become position:fixed, fly to corners.
-     * Transition on every property so the "fly" is smooth.
-     */
     .video-card {
       position: relative;
       background: #f5f5f5;
@@ -183,8 +152,6 @@
       overflow: hidden;
       aspect-ratio: 4/3;
       border: 1px solid #e5e5e5;
-
-      /* Transition for PiP morph */
       transition:
         width 0.6s cubic-bezier(0.4, 0, 0.2, 1),
         height 0.6s cubic-bezier(0.4, 0, 0.2, 1),
@@ -222,7 +189,6 @@
     .video-placeholder i    { font-size: 2rem; }
     .video-placeholder span { font-size: 0.75rem; }
 
-    /* Default video grid: two columns */
     .video-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -235,7 +201,6 @@
 
     /* ── PiP STATE (.game-active) ─────────────────────────────────────────── */
     .game-active .video-grid {
-      /* Grid becomes invisible placeholder; cards escape to fixed */
       display: block;
       pointer-events: none;
       height: 0;
@@ -243,7 +208,6 @@
       overflow: visible;
     }
 
-    /* Both cards go fixed during game */
     .game-active .video-card {
       position: fixed;
       width: 200px;
@@ -256,7 +220,6 @@
       pointer-events: all;
     }
 
-    /* Local → bottom-left */
     .game-active .video-card.local-card {
       bottom: 24px;
       left: 24px;
@@ -264,7 +227,6 @@
       right: auto;
     }
 
-    /* Remote → top-right */
     .game-active .video-card.remote-card {
       top: 24px;
       right: 24px;
@@ -272,7 +234,6 @@
       left: auto;
     }
 
-    /* Mobile: smaller PiP so board is visible */
     @media (max-width: 640px) {
       .game-active .video-card { width: 120px; }
       .game-active .video-card.local-card  { bottom: 16px; left: 16px; }
@@ -286,7 +247,6 @@
       z-index: 1;
     }
 
-    /* Show board only during game */
     .game-active .game-board-area {
       display: flex;
       flex-direction: column;
@@ -301,7 +261,7 @@
       min-height: 400px;
     }
 
-    /* ── CHAT + LOG (hidden during game) ─────────────────────────────────── */
+    /* ── CHAT + LOG ─────────────────────────────────────────────────────── */
     .chat-container {
       background: white;
       border: 1px solid #e5e5e5;
@@ -427,7 +387,7 @@
     #chatSendBtn:hover { background: #333333; transform: scale(1.02); }
     #chatSendBtn i     { font-size: 1rem; }
 
-    /* ── OLD ACTION BUTTONS (hidden during game, replaced by FABs) ─────────── */
+    /* ── ACTION BUTTONS (no game dropdown — removed as requested) ─────────── */
     .action-buttons {
       display: flex; gap: 12px;
       flex-wrap: wrap; justify-content: center;
@@ -459,14 +419,13 @@
     .btn-report:disabled,
     .btn-report.reported { opacity: 0.45; cursor: not-allowed; transform: none; color: #999999; border-color: #e5e5e5; background: white; }
 
-    /* ── FLOATING ACTION BUTTONS (FABs) ───────────────────────────────────── */
-    /*  Shown whenever matched (normal + game mode), vertical stack bottom-right */
+    /* ── FLOATING ACTION BUTTONS ──────────────────────────────────────────── */
     .fab-stack {
       position: fixed;
       bottom: 28px;
       right: 28px;
       display: flex;
-      flex-direction: column-reverse; /* bottom item first visually */
+      flex-direction: column-reverse;
       gap: 14px;
       z-index: 300;
       opacity: 0;
@@ -475,15 +434,11 @@
       transition: opacity 0.4s ease 0.3s, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.3s;
     }
 
-    /* JS adds .fab-visible when matched (normal or game mode) */
     .fab-stack.fab-visible {
       opacity: 1;
       pointer-events: all;
       transform: translateX(0);
     }
-
-    /* Hide Play Game FAB only when a game is already active */
-    .game-active #fabGamesWrap { display: none; }
 
     @media (max-width: 640px) {
       .fab-stack { bottom: 16px; right: 16px; gap: 10px; }
@@ -502,7 +457,6 @@
       position: relative;
     }
 
-    /* In game mode: glass style */
     .game-active .fab {
       border: 1px solid rgba(255,255,255,0.3);
       background: rgba(255,255,255,0.18);
@@ -523,7 +477,6 @@
     }
 
     .fab:active { transform: scale(0.96); }
-
     .fab svg { width: 20px; height: 20px; stroke: #111; }
 
     .fab.fab-danger svg   { stroke: #dc2626; }
@@ -532,7 +485,6 @@
     .fab.fab-warn svg   { stroke: #d97706; }
     .fab.fab-warn:hover { background: rgba(245,158,11,0.12); }
 
-    /* Tooltip */
     .fab::before {
       content: attr(data-tip);
       position: absolute;
@@ -556,75 +508,18 @@
     @media (max-width: 640px) {
       .fab { width: 44px; height: 44px; }
       .fab svg { width: 18px; height: 18px; }
-      .fab::before { display: none; } /* tooltips too cramped on mobile */
+      .fab::before { display: none; }
     }
-
-    /* ── GAMES DROPDOWN (action-buttons bar) ─────────────────────────────── */
-    .games-dropdown-wrap {
-      position: relative;
-    }
-    .games-dropdown {
-      display: none;
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      border: 1px solid #e5e5e5;
-      border-radius: 14px;
-      padding: 6px;
-      box-shadow: 0 8px 28px rgba(0,0,0,0.1);
-      min-width: 180px;
-      z-index: 200;
-      animation: fadeIn 0.15s ease;
-    }
-    .games-dropdown.open { display: block; }
-    .games-dropdown-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 9px 14px; border-radius: 9px;
-      font-size: 0.83rem; font-weight: 500;
-      color: #111; cursor: pointer;
-      border: none; background: none; width: 100%; text-align: left;
-      transition: background 0.15s;
-    }
-    .games-dropdown-item:hover { background: #f5f5f5; }
-    .games-dropdown-item .game-badge {
-      font-size: 0.65rem; background: #f0f0f0;
-      color: #888; padding: 2px 7px; border-radius: 20px; margin-left: auto;
-    }
-
-    /* ── FAB GAMES DROPDOWN ───────────────────────────────────────────────── */
-    .fab-games-wrap {
-      position: relative;
-    }
-    .fab-games-dropdown {
-      display: none;
-      position: absolute;
-      right: calc(100% + 10px);
-      bottom: 0;
-      background: white;
-      border: 1px solid #e5e5e5;
-      border-radius: 14px;
-      padding: 6px;
-      box-shadow: 0 8px 28px rgba(0,0,0,0.14);
-      min-width: 190px;
-      z-index: 400;
-      animation: fadeIn 0.15s ease;
-    }
-    .fab-games-dropdown.open { display: block; }
 
     /* Chat FAB */
     .fab.fab-chat svg { stroke: #6366f1; }
     .fab.fab-chat:hover { background: rgba(99,102,241,0.12); }
 
-    /* Unread message dot on chat FAB */
     .fab.fab-chat .chat-unread-dot {
       display: none;
       position: absolute;
-      top: 6px;
-      right: 6px;
-      width: 9px;
-      height: 9px;
+      top: 6px; right: 6px;
+      width: 9px; height: 9px;
       border-radius: 50%;
       background: #ef4444;
       border: 2px solid #ffffff;
@@ -708,16 +603,11 @@
       justify-content: center;
       z-index: 800;
       animation: backdropIn 0.25s ease;
-      /* pointer-events blocks all interaction */
     }
 
-    .countdown-overlay.hidden {
-      display: none;
-    }
+    .countdown-overlay.hidden { display: none; }
 
-    .countdown-inner {
-      text-align: center;
-    }
+    .countdown-inner { text-align: center; }
 
     .countdown-label {
       color: rgba(255,255,255,0.7);
@@ -733,7 +623,6 @@
       font-weight: 700;
       color: white;
       line-height: 1;
-      /* each number gets re-animated by JS re-triggering the class */
     }
 
     .countdown-number.pop {
@@ -809,7 +698,6 @@
 
     /* ── FOOTER ───────────────────────────────────────────────────────────── */
     .site-footer {
-      margin-top: auto;
       padding-top: 2rem;
       text-align: center;
       font-size: 0.7rem;
@@ -870,440 +758,385 @@
     .game-result-banner p  { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
     .game-result-banner .result-btns { display: flex; gap: 10px; justify-content: center; }
 
-/* NOTEBOOK STYLES - Option 1 */
-.notebook-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
+    /* ══════════════════════════════════════════════════════════════════════════
+       VIBE SELECTION SCREEN
+       ══════════════════════════════════════════════════════════════════════════ */
 
-.notebook {
-  background: #fef8e7;
-  width: 100%;
-  max-width: 520px;
-  border-radius: 8px 12px 12px 8px;
-  box-shadow: 15px 15px 30px rgba(0,0,0,0.15), inset -1px 0 0 rgba(0,0,0,0.05);
-  position: relative;
-  transition: transform 0.2s ease;
-}
+    .vs-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: calc(100vh - 220px);
+      padding: 2rem 1rem;
+    }
 
-.notebook:hover {
-  transform: translateY(-4px);
-}
+    .vs-greeting {
+      font-size: clamp(1.6rem, 4.5vw, 2.2rem);
+      font-weight: 700;
+      color: #111;
+      text-align: center;
+      margin-bottom: 0.35rem;
+      letter-spacing: -0.03em;
+    }
+    .vs-greeting span { color: #666; font-weight: 500; }
 
-.spiral-binder {
-  position: absolute;
-  left: -12px;
-  top: 20px;
-  bottom: 20px;
-  width: 24px;
-  background: repeating-linear-gradient(
-    to bottom,
-    #c0b090 0px,
-    #c0b090 8px,
-    #a09070 8px,
-    #a09070 16px
-  );
-  border-radius: 12px 0 0 12px;
-  box-shadow: inset -1px 0 0 rgba(0,0,0,0.1);
-}
+    .vs-sub {
+      font-size: clamp(0.85rem, 2.5vw, 1rem);
+      color: #888;
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
 
-.notebook-page {
-  padding: 2rem 2rem 2rem 2.5rem;
-  position: relative;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 28px,
-    rgba(120, 90, 60, 0.06) 28px,
-    rgba(120, 90, 60, 0.06) 29px
-  );
-}
+    .vs-vibes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.1rem;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 2rem;
+    }
 
-.notebook-page::before {
-  content: '';
-  position: absolute;
-  left: 48px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: rgba(220, 80, 60, 0.25);
-}
+    @media (max-width: 480px) {
+      .vs-vibes { grid-template-columns: 1fr; max-width: 320px; }
+    }
 
-.page-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  font-family: 'Courier New', monospace;
-  font-size: 0.7rem;
-  color: #8a7a60;
-  border-bottom: 1px dashed #d4c8b0;
-  padding-bottom: 0.5rem;
-}
+    .vs-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 1.6rem 1rem 1.4rem;
+      border-radius: 20px;
+      border: 2px solid #e5e5e5;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.18s, background 0.18s, transform 0.18s, box-shadow 0.18s;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
 
-.page-title { font-weight: 700; font-size: 0.9rem; color: #2a2a2a; }
+    .vs-card:hover {
+      border-color: #bbb;
+      background: #fafafa;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+    }
 
-.handwritten-title {
-  font-size: 2rem;
-  font-weight: 600;
-  font-family: 'Courier New', monospace;
-  color: #1a1a1a;
-  margin: 1.5rem 0 1rem;
-  line-height: 1.2;
-}
+    .vs-card.vs-selected {
+      border-color: #111;
+      background: #111;
+      color: #fff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
 
-.handwritten-body {
-  font-family: 'Courier New', monospace;
-  font-size: 0.9rem;
-  color: #4a4a4a;
-  line-height: 1.6;
-  margin: 1rem 0;
-}
+    .vs-card-emoji { font-size: 2.2rem; line-height: 1; }
+    .vs-card-label {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: inherit;
+      text-align: center;
+    }
+    .vs-card-hint {
+      font-size: 0.72rem;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.35;
+    }
+    .vs-card.vs-selected .vs-card-hint { color: rgba(255,255,255,0.55); }
 
-.highlight-box {
-  background: #fef3c7;
-  padding: 10px 14px;
-  border-radius: 8px;
-  margin: 1.5rem 0;
-  font-size: 0.8rem;
-  font-family: monospace;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-left: 3px solid #f59e0b;
-}
+    .vs-game-picker {
+      width: 100%;
+      max-width: 520px;
+      display: none;
+      flex-direction: column;
+      gap: 0.55rem;
+      margin-bottom: 2rem;
+      animation: fadeIn 0.2s ease;
+    }
+    .vs-game-picker.visible { display: flex; }
 
-.btn-notebook {
-  background: #1a1a1a;
-  color: #fef8e7;
-  padding: 12px 28px;
-  border-radius: 40px;
-  border: none;
-  font-size: 0.85rem;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-  margin: 1rem 0;
-}
+    .vs-game-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #999;
+      margin-bottom: 0.2rem;
+    }
 
-.btn-notebook:hover {
-  background: #3a3a3a;
-  transform: translateY(-2px);
-}
+    .vs-game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.6rem;
+    }
 
-.page-footer {
-  text-align: center;
-  font-size: 0.6rem;
-  color: #aaa080;
-  font-family: monospace;
-  margin-top: 1.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px dashed #d4c8b0;
-}
+    .vs-game-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1.5px solid #e5e5e5;
+      background: #fff;
+      font-size: 0.82rem;
+      font-weight: 500;
+      color: #333;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .vs-game-btn i { font-size: 1rem; color: #888; }
+    .vs-game-btn:hover { border-color: #bbb; background: #f7f7f7; }
+    .vs-game-btn.vs-game-selected {
+      border-color: #111;
+      background: #111;
+      color: #fff;
+    }
+    .vs-game-btn.vs-game-selected i { color: #fff; }
 
-@media (max-width: 550px) {
-  .notebook-page { padding: 1.2rem; }
-  .handwritten-title { font-size: 1.5rem; }
-  .notebook-container { padding: 10px; }
-}
+    .vs-cta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      max-width: 520px;
+    }
 
-/* ── GREETING STICKY NOTE (pinned to notebook) ───────────────────────────── */
-.greeting-sticky {
-  position: absolute;
-  top: -20px;
-  right: -15px;
-  background: #fef3c7;
-  padding: 10px 14px;
-  border-radius: 8px;
-  box-shadow: 4px 6px 12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7);
-  transform: rotate(6deg);
-  z-index: 10;
-  min-width: 130px;
-  text-align: center;
-  transition: transform 0.2s ease;
-}
+    .vs-find-btn {
+      width: 100%;
+      padding: 15px 24px;
+      border-radius: 50px;
+      border: none;
+      background: #111;
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: -0.01em;
+    }
+    .vs-find-btn:hover:not(:disabled) {
+      background: #333;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .vs-find-btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
 
-.greeting-sticky:hover {
-  transform: rotate(3deg) scale(1.02);
-}
+    .vs-online-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: #aaa;
+    }
+    .vs-online-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+    }
 
-.sticky-pin-greeting {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 14px;
-  height: 14px;
-  background: #dc2626;
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  cursor: pointer;
-}
+    /* ── VIBE CONTEXT BANNER ────────────────────────────────────────────── */
+    .vibe-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px 20px;
+      border-radius: 40px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 1.25rem;
+      animation: fadeIn 0.35s ease;
+      border: 1.5px solid transparent;
+    }
 
-.sticky-pin-greeting::after {
-  content: '';
-  position: absolute;
-  bottom: -4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 2px;
-  height: 6px;
-  background: #8b4513;
-}
+    .vibe-banner.vibe-casual {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #15803d;
+    }
 
-.greeting-emoji {
-  font-size: 1.2rem;
-  margin-bottom: 2px;
-}
+    .vibe-banner.vibe-board-game {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+    }
 
-.greeting-text {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #854d0e;
-  font-family: 'Courier New', monospace;
-}
+    .vibe-banner-emoji { font-size: 1.1rem; }
 
-.greeting-text strong {
-  font-weight: 700;
-  color: #5a3a10;
-}
+    /* ── TERMS AND POLICY MODAL ─────────────────────────────────────────── */
+    .terms-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
 
-.greeting-sub {
-  font-size: 0.65rem;
-  color: #a07a30;
-  margin-top: 4px;
-  font-style: italic;
-}
+    .terms-backdrop.show { display: flex; }
 
-/* Responsive adjustments */
-@media (max-width: 550px) {
-  .greeting-sticky {
-    position: relative;
-    top: -10px;
-    right: auto;
-    left: 0;
-    transform: rotate(2deg);
-    margin-bottom: 1rem;
-    max-width: 90%;
-  }
-  
-  .greeting-sticky:hover {
-    transform: rotate(1deg);
-  }
-  
-  .notebook-page {
-    display: flex;
-    flex-direction: column;
-  }
-}
+    .terms-modal {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 90%;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 2rem;
+      animation: slideIn 0.3s cubic-bezier(0.34, 1.3, 0.64, 1);
+    }
 
-/* ── TERMS AND POLICY MODAL ────────────────────────────────────────────────── */
-.terms-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
 
-.terms-backdrop.show {
-  display: flex;
-}
+    .terms-modal h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: #111111;
+    }
 
-.terms-modal {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  max-width: 500px;
-  width: 90%;
-  max-height: 85vh;
-  overflow-y: auto;
-  padding: 2rem;
-  animation: slideIn 0.3s cubic-bezier(0.34, 1.3, 0.64, 1);
-}
+    .terms-modal p {
+      color: #666666;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+    .terms-content {
+      background: #f9f9f9;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      color: #555555;
+      line-height: 1.6;
+      border: 1px solid #e5e5e5;
+    }
 
-.terms-modal h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  color: #111111;
-}
+    .terms-content h4 {
+      font-weight: 600;
+      color: #111111;
+      margin: 1rem 0 0.5rem;
+      font-size: 0.9rem;
+    }
 
-.terms-modal p {
-  color: #666666;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-}
+    .terms-content ul { margin-left: 1.5rem; margin-top: 0.5rem; }
+    .terms-content li { margin-bottom: 0.5rem; }
 
-.terms-content {
-  background: #f9f9f9;
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  max-height: 300px;
-  overflow-y: auto;
-  font-size: 0.85rem;
-  color: #555555;
-  line-height: 1.6;
-  border: 1px solid #e5e5e5;
-}
+    .terms-checkboxes {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
 
-.terms-content h4 {
-  font-weight: 600;
-  color: #111111;
-  margin: 1rem 0 0.5rem;
-  font-size: 0.9rem;
-}
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
 
-.terms-content ul {
-  margin-left: 1.5rem;
-  margin-top: 0.5rem;
-}
+    .checkbox-group input[type="checkbox"] {
+      width: 20px; height: 20px;
+      margin-top: 2px;
+      cursor: pointer;
+      accent-color: #111111;
+    }
 
-.terms-content li {
-  margin-bottom: 0.5rem;
-}
+    .checkbox-group label {
+      flex: 1;
+      font-size: 0.9rem;
+      color: #333333;
+      cursor: pointer;
+      line-height: 1.4;
+    }
 
-.terms-checkboxes {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
+    .terms-error {
+      background: #fee;
+      color: #c33;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      border-left: 3px solid #c33;
+      display: none;
+    }
+    .terms-error.show { display: block; }
 
-.checkbox-group {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
+    .terms-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
 
-.checkbox-group input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
-  cursor: pointer;
-  accent-color: #111111;
-}
+    .btn-terms-cancel {
+      padding: 10px 24px;
+      border-radius: 30px;
+      border: 1px solid #e5e5e5;
+      background: white;
+      color: #111111;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-terms-cancel:hover { background: #f5f5f5; }
 
-.checkbox-group label {
-  flex: 1;
-  font-size: 0.9rem;
-  color: #333333;
-  cursor: pointer;
-  line-height: 1.4;
-}
+    .btn-terms-accept {
+      padding: 10px 24px;
+      border-radius: 30px;
+      border: none;
+      background: #111111;
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-terms-accept:hover    { background: #333333; }
+    .btn-terms-accept:disabled { background: #cccccc; cursor: not-allowed; opacity: 0.6; }
 
-.checkbox-group input[type="checkbox"]:hover {
-  opacity: 0.8;
-}
+    /* Presence flash */
+    @keyframes presence-flash {
+      0%   { opacity: 1; }
+      30%  { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+    .presence-changed { animation: presence-flash 0.5s ease-out; }
 
-.terms-error {
-  background: #fee;
-  color: #c33;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
-  border-left: 3px solid #c33;
-  display: none;
-}
-
-.terms-error.show {
-  display: block;
-}
-
-.terms-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-}
-
-.btn-terms-cancel {
-  padding: 10px 24px;
-  border-radius: 30px;
-  border: 1px solid #e5e5e5;
-  background: white;
-  color: #111111;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-terms-cancel:hover {
-  background: #f5f5f5;
-}
-
-.btn-terms-accept {
-  padding: 10px 24px;
-  border-radius: 30px;
-  border: none;
-  background: #111111;
-  color: white;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-terms-accept:hover {
-  background: #333333;
-}
-
-.btn-terms-accept:disabled {
-  background: #cccccc;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* User online count badge */
-@keyframes presence-flash {
-    0%   { opacity: 1; }
-    30%  { opacity: 0.4; }
-    100% { opacity: 1; }
-}
- 
-.presence-changed {
-    animation: presence-flash 0.5s ease-out;
-}
-
-
-
-    /* ═══════════════════════════════════════════════════════════════════════════
-       PAGE LOADER — chichi themed, no circles, narrative driven
-       ═══════════════════════════════════════════════════════════════════════════ */
+    /* ── PAGE LOADER ──────────────────────────────────────────────────────── */
     #page-loader {
       position: fixed;
       inset: 0;
       background: #ffffff;
       z-index: 9999;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 2rem;
-      transition: opacity 0.5s ease, visibility 0.5s ease;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
     }
 
     #page-loader.loader-hidden {
@@ -1312,137 +1145,26 @@
       pointer-events: none;
     }
 
-    .loader-logo {
+    .loader-wordmark {
       font-size: 2rem;
       font-weight: 700;
       letter-spacing: -1px;
-      color: #111111;
-      margin-bottom: 3rem;
+      color: #111;
+      animation: loaderPulse 0.9s ease infinite alternate;
     }
 
-    /* Typewriter terminal block */
-    .loader-terminal {
-      width: min(520px, 92vw);
-      border: 1px solid #e5e5e5;
-      border-radius: 12px;
-      overflow: hidden;
-      margin-bottom: 2.5rem;
+    @keyframes loaderPulse {
+      from { opacity: 0.35; }
+      to   { opacity: 1; }
     }
-
-    .loader-term-bar {
-      background: #f5f5f5;
-      border-bottom: 1px solid #e5e5e5;
-      padding: 10px 14px;
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-
-    .term-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-    }
-    .term-dot:nth-child(1) { background: #e5e5e5; }
-    .term-dot:nth-child(2) { background: #e5e5e5; }
-    .term-dot:nth-child(3) { background: #e5e5e5; }
-
-    .loader-term-body {
-      background: #ffffff;
-      padding: 18px 20px;
-      min-height: 130px;
-      font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
-      font-size: clamp(0.72rem, 2vw, 0.82rem);
-      line-height: 1.8;
-      color: #333333;
-    }
-
-    .loader-line {
-      display: block;
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity 0.2s ease, transform 0.2s ease;
-      white-space: nowrap;
-      overflow: hidden;
-    }
-
-    .loader-line.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .loader-line .prompt { color: #999999; margin-right: 8px; user-select: none; }
-    .loader-line .ok     { color: #10b981; font-weight: 600; }
-    .loader-line .warn   { color: #f59e0b; }
-    .loader-line .dim    { color: #bbbbbb; }
-
-    /* Blinking cursor */
-    .loader-cursor {
-      display: inline-block;
-      width: 7px; height: 1.1em;
-      background: #111111;
-      margin-left: 3px;
-      vertical-align: text-bottom;
-      animation: blink 1s step-end infinite;
-    }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-
-    /* Progress bar — thin line, not a circle */
-    .loader-progress-wrap {
-      width: min(520px, 92vw);
-      height: 2px;
-      background: #f0f0f0;
-      border-radius: 2px;
-      overflow: hidden;
-      margin-bottom: 1.25rem;
-    }
-
-    .loader-progress-bar {
-      height: 100%;
-      width: 0%;
-      background: #111111;
-      border-radius: 2px;
-      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .loader-tagline {
-      font-size: 0.75rem;
-      color: #bbbbbb;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
   </style>
 </head>
 <body>
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     PAGE LOADER
-     ═══════════════════════════════════════════════════════════════════════════ -->
+
+<!-- PAGE LOADER -->
 <div id="page-loader" role="status" aria-label="Loading chichi">
-
-  <div class="loader-logo">chichi</div>
-
-  <div class="loader-terminal">
-    <div class="loader-term-bar">
-      <div class="term-dot"></div>
-      <div class="term-dot"></div>
-      <div class="term-dot"></div>
-    </div>
-    <div class="loader-term-body" id="loaderTermBody">
-      <span class="loader-line" id="ll0">
-        <span class="prompt">›</span>booting conversation engine<span class="loader-cursor" id="loaderCursor"></span>
-      </span>
-    </div>
-  </div>
-
-  <div class="loader-progress-wrap">
-    <div class="loader-progress-bar" id="loaderBar"></div>
-  </div>
-
-  <div class="loader-tagline" id="loaderTagline">hang tight</div>
-
+  <span class="loader-wordmark">chichi</span>
 </div>
-
-
 
 <div class="connect-container">
 
@@ -1455,60 +1177,53 @@
     </div>
   </div>
 
-  <!-- ── IDLE PANEL ──────────────────────────────────────────────────────── -->  
-   <!-- ── IDLE PANEL (SPIRAL NOTEBOOK with GREETING STICKY NOTE) ───────────── -->
+  <!-- ══════════════════════════════════════════════════════════════════════
+       IDLE PANEL — Vibe Selection Screen
+       ══════════════════════════════════════════════════════════════════════ -->
   <div class="panel active" id="panelIdle">
-    <div class="notebook-container">
-      <div class="notebook">
-        <!-- spiral binding effect -->
-        <div class="spiral-binder"></div>
-        
-        <div class="notebook-page">
-          <!-- GREETING STICKY NOTE (pinned to top-right of notebook) -->
-          <div class="greeting-sticky">
-            <div class="sticky-pin-greeting"></div>
-            <div class="greeting-emoji">👋</div>
-            <div class="greeting-text">
-              hey, <strong>{{ request.user.username }}</strong>
-            </div>
-            <div class="greeting-sub">ready to vibe?</div>
-          </div>
-          
-          <div class="page-header">
-            <span class="page-title">chichi</span>
-            <span class="page-date">today's session</span>
-          </div>
-          
-          <div class="ruled-line"></div>
-          <div class="ruled-line"></div>
-          
-          <div class="handwritten-title">
-            Meet <br>someone new
-          </div>
-          
-          <div class="handwritten-body">
-            Nobody wants to start a <br>
-            conversation with a stranger. <br>
-            Thats why we start it with a game.
-          </div>
-          
-          <div class="highlight-box">
-            <i class="bi bi-check-circle-fill"></i> <span data-presence="online_count"
-      data-presence-animate="true">{{ online_count }}</span> online right now
-          </div>
-          
-          <div class="button-row">
-            <button class="btn-notebook" id="btnConnect">
-              <i class="bi bi-broadcast"></i> Start Matching
-              <i class="bi bi-arrow-right"></i>
-            </button>
-          </div>
-          
-          <div class="page-footer">
-            — no profiles · no data · just vibes —
-          </div>
+    <div class="vs-wrapper">
+
+      <h1 class="vs-greeting">
+        hey, <span>{{ request.user.username }}</span> 👋
+      </h1>
+      <p class="vs-sub">pick your vibe & we'll match you with someone who chose the same</p>
+
+      <!-- STEP 1: Vibe Cards -->
+      <div class="vs-vibes" id="vsVibes">
+        <button class="vs-card" data-vibe="casual" id="vcCasual" type="button" aria-pressed="false">
+          <span class="vs-card-emoji">💬</span>
+          <span class="vs-card-label">Casual Chat</span>
+          <span class="vs-card-hint">Just talk and chat</span>
+        </button>
+        <button class="vs-card" data-vibe="board_game" id="vcBoardGame" type="button" aria-pressed="false">
+          <span class="vs-card-emoji">🎲</span>
+          <span class="vs-card-label">Board Games</span>
+          <span class="vs-card-hint">Play a game while you chat</span>
+        </button>
+      </div>
+
+      <!-- STEP 2: Game Picker (Board Games only) -->
+      <div class="vs-game-picker" id="vsGamePicker" aria-hidden="true">
+        <div class="vs-game-label">choose a game</div>
+        <div class="vs-game-grid" id="vsGameGrid">
+          <!-- populated by JS from GAME_REGISTRY -->
         </div>
       </div>
+
+      <!-- STEP 3: CTA -->
+      <div class="vs-cta">
+        <button class="vs-find-btn" id="btnConnect" disabled>
+          <i class="bi bi-broadcast"></i>
+          <span id="btnConnectLabel">Find Match</span>
+          <i class="bi bi-arrow-right"></i>
+        </button>
+        <div class="vs-online-badge">
+          <span class="vs-online-dot"></span>
+          <span data-presence="online_count" data-presence-animate="true">{{ online_count }}</span>
+          &nbsp;online right now · no profiles · just vibes
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1519,8 +1234,8 @@
       <div class="spinner-icon">
         <i class="bi bi-hourglass-split"></i>
       </div>
-      <h2>finding someone...</h2>
-      <p style="color: #666666; font-size: 0.85rem;">hang tight, we're looking for a match</p>
+      <h2 id="waitingHeading">finding someone...</h2>
+      <p id="waitingSub" style="color: #666666; font-size: 0.85rem;">hang tight, we're looking for a match</p>
       <button class="btn" id="btnCancel" style="margin-top:1rem;">
         <i class="bi bi-x-lg"></i> Cancel
       </button>
@@ -1532,6 +1247,9 @@
   <div class="panel" id="panelMatched">
     <div class="matched-panel-content" id="matchedContent">
 
+      <!-- VIBE CONTEXT BANNER -->
+      <div class="vibe-banner" id="vibeBanner" style="display:none;" role="status" aria-live="polite"></div>
+
       <div class="matched-header">
         <div class="live-badge">
           <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i>
@@ -1540,7 +1258,7 @@
         <div class="session-pill" id="sessionIdDisplay">—</div>
       </div>
 
-      <!-- video grid — cards fly to PiP on game start -->
+      <!-- video grid -->
       <div class="video-grid" id="videoGrid">
         <div class="video-card local-card" id="localCard">
           <video id="localVideo" autoplay muted playsinline></video>
@@ -1560,12 +1278,12 @@
         </div>
       </div>
 
-      <!-- Game board — reveals when game-active -->
+      <!-- Game board -->
       <div class="game-board-area" id="gameBoardArea">
         <div id="gameBoard"></div>
       </div>
 
-      <!-- chat / log area -->
+      <!-- chat / log -->
       <div class="chat-container">
         <div class="chat-tabs">
           <button class="chat-tab active" data-tab="log">
@@ -1594,20 +1312,11 @@
         </div>
       </div>
 
-      <!-- action buttons (flow; hidden during game) -->
+      <!-- action buttons — NO game dropdown here (game chosen at start) -->
       <div class="action-buttons">
         <button class="btn" id="btnCamera">
           <i class="bi bi-camera-video-fill"></i> Camera
         </button>
-        <!-- Games dropdown -->
-        <div class="games-dropdown-wrap" id="gamesDropdownWrap">
-          <button class="btn" id="btnPlayGame">
-            <i class="bi bi-controller"></i> Play Game <i class="bi bi-chevron-down" style="font-size:0.7rem;margin-left:2px;"></i>
-          </button>
-          <div class="games-dropdown" id="gamesDropdown">
-            <!-- populated by GAME_REGISTRY -->
-          </div>
-        </div>
         <button class="btn btn-warning" id="btnRematch">
           <i class="bi bi-shuffle"></i> New Match
         </button>
@@ -1629,9 +1338,8 @@
 
 </div><!-- /connect-container -->
 
-<!-- ── FLOATING ACTION BUTTONS (always visible when matched) ────────────── -->
+<!-- ── FLOATING ACTION BUTTONS — NO Play Game FAB (chosen at start) ──────── -->
 <div class="fab-stack" id="fabStack">
-  <!-- Top = last in DOM (column-reverse) -->
   <button class="fab fab-danger" id="fabLeave" data-tip="Leave session">
     <i data-lucide="log-out"></i>
   </button>
@@ -1641,19 +1349,9 @@
   <button class="fab" id="fabRematch" data-tip="New match">
     <i data-lucide="refresh-cw"></i>
   </button>
-  <!-- Play Game FAB — hidden when a game is already active -->
-  <div class="fab-games-wrap" id="fabGamesWrap">
-    <button class="fab" id="fabPlayGame" data-tip="Play a game">
-      <i data-lucide="gamepad-2"></i>
-    </button>
-    <div class="fab-games-dropdown" id="fabGamesDropdown">
-      <!-- populated by GAME_REGISTRY -->
-    </div>
-  </div>
   <button class="fab" id="fabCamera" data-tip="Toggle camera">
     <i data-lucide="video"></i>
   </button>
-  <!-- Chat FAB -->
   <button class="fab fab-chat" id="fabChat" data-tip="Chat">
     <i data-lucide="message-circle"></i>
     <span class="chat-unread-dot"></span>
@@ -1683,7 +1381,7 @@
 <!-- ── TOAST CONTAINER ────────────────────────────────────────────────────── -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- ── GAME CHAT OVERLAY (visible during game mode) ──────────────────────── -->
+<!-- ── GAME CHAT OVERLAY (during game mode) ───────────────────────────────── -->
 <div class="game-chat-overlay" id="gameChatOverlay">
   <div class="game-chat-header">
     <span><i class="bi bi-chat-dots" style="color:#6366f1;margin-right:6px;"></i>Chat</span>
@@ -1724,11 +1422,11 @@
   <div class="terms-modal">
     <h2>Welcome to Chichi! 👋</h2>
     <p>Before you can start connecting, please review and accept our terms.</p>
-    
+
     <div class="terms-content">
       <h4>Terms and Conditions</h4>
       <p>By using Chichi, you agree to use the platform responsibly and respect all users. We have a zero-tolerance policy for harassment, hate speech, or any form of abuse.</p>
-      
+
       <h4>Acceptable Use Policy</h4>
       <ul>
         <li>No harassment, hate speech, or discrimination</li>
@@ -1737,10 +1435,10 @@
         <li>No commercial solicitation or spam</li>
         <li>Respect all users regardless of background</li>
       </ul>
-      
+
       <h4>Age Requirement</h4>
       <p>You must be at least 18 years old to use this service.</p>
-      
+
       <h4>Privacy & Communications</h4>
       <p>We may send you service updates and promotional content. You can manage your preferences in settings at any time.</p>
     </div>
@@ -1787,14 +1485,12 @@
 <script>
   "use strict";
 
-  // Render Lucide icons
   lucide.createIcons();
 
-  /* ════════════════════════════════════════════════════════════════════════════════
+  /* ════════════════════════════════════════════════════════════════════════
      DOM REFERENCES
-     ════════════════════════════════════════════════════════════════════════════════ */
+     ════════════════════════════════════════════════════════════════════════ */
 
-  // ── Panel & Display Elements ──────────────────────────────────────────────────
   const panelIdle        = document.getElementById('panelIdle');
   const panelWaiting     = document.getElementById('panelWaiting');
   const panelMatched     = document.getElementById('panelMatched');
@@ -1804,31 +1500,22 @@
   const sessionIdDisplay = document.getElementById('sessionIdDisplay');
   const waitingSessionId = document.getElementById('waitingSessionId');
 
-  // ── Video & Stream Elements ───────────────────────────────────────────────────
   const localVideo        = document.getElementById('localVideo');
   const remoteVideo       = document.getElementById('remoteVideo');
   const localPlaceholder  = document.getElementById('localPlaceholder');
   const remotePlaceholder = document.getElementById('remotePlaceholder');
-  const localCard         = document.getElementById('localCard');
-  const remoteCard        = document.getElementById('remoteCard');
 
-  // ── Chat & Communication ──────────────────────────────────────────────────────
   const logMessages      = document.getElementById('logMessages');
   const chatMessages     = document.getElementById('chatMessages');
   const chatInput        = document.getElementById('chatInput');
   const chatSendBtn      = document.getElementById('chatSendBtn');
-  const gameBoardArea    = document.getElementById('gameBoardArea');
-
-  // ── UI Controls ───────────────────────────────────────────────────────────────
   const fabStack         = document.getElementById('fabStack');
 
-  // ── Report Modal ──────────────────────────────────────────────────────────────
   const btnReport        = document.getElementById('btnReport');
   const reportBackdrop   = document.getElementById('reportBackdrop');
   const reportCancelBtn  = document.getElementById('reportCancelBtn');
   const reportConfirmBtn = document.getElementById('reportConfirmBtn');
 
-  // ── Terms & Policy Modal ──────────────────────────────────────────────────────
   const termsBackdrop       = document.getElementById('termsBackdrop');
   const termsCheckbox       = document.getElementById('termsCheckbox');
   const ageCheckbox         = document.getElementById('ageCheckbox');
@@ -1838,71 +1525,43 @@
   const termsError          = document.getElementById('termsError');
   const hasAgreedToTerms    = {{ has_agreed_to_terms|lower }};
 
-  // ── Countdown & Game Result ───────────────────────────────────────────────────
   const countdownOverlay = document.getElementById('countdownOverlay');
   const countdownNumber  = document.getElementById('countdownNumber');
   const gameResultBanner = document.getElementById('gameResultBanner');
   const gameResultTitle  = document.getElementById('gameResultTitle');
   const gameResultSub    = document.getElementById('gameResultSub');
 
-  /* ════════════════════════════════════════════════════════════════════════════════
+  /* ════════════════════════════════════════════════════════════════════════
      APPLICATION STATE
-     ════════════════════════════════════════════════════════════════════════════════ */
+     ════════════════════════════════════════════════════════════════════════ */
 
-  let cameraStream = null;
-  let cameraOn     = false;
-  let hasReported  = false;
-  let gameActive   = false;
+  let cameraStream  = null;
+  let cameraOn      = false;
+  let hasReported   = false;
+  let gameActive    = false;
   let countdownTimer = null;
-  let _localResultShown = false;   // prevents onGameResult overwriting local engine result
+  let _localResultShown = false;
 
-  /* ════════════════════════════════════════════════════════════════════════════════
-     TERMS & POLICY AGREEMENT SYSTEM
-     ════════════════════════════════════════════════════════════════════════════════
-     
-     Handles user acceptance of:
-     - Consumer Terms and Acceptable Use Policy
-     - Age Confirmation (18+ years old)
-     - Promotional Email Opt-in
-     
-     User must accept Terms and Age Confirmation before proceeding.
-     Promotional emails are optional.
-  */
+  // ── VIBE SELECTION STATE ──────────────────────────────────────────────────
+  let _selectedVibe = null;   // "casual" | "board_game"
+  let _selectedGame = null;   // game code when _selectedVibe === "board_game"
 
-  /**
-   * Validates that user has checked required terms (terms and age confirmation).
-   * Disables accept button if requirements not met.
-   */
+  /* ════════════════════════════════════════════════════════════════════════
+     TERMS & POLICY
+     ════════════════════════════════════════════════════════════════════════ */
+
   function checkTermsValidation() {
-    const termsValid = termsCheckbox.checked;
-    const ageValid = ageCheckbox.checked;
-    termsAcceptBtn.disabled = !(termsValid && ageValid);
+    termsAcceptBtn.disabled = !(termsCheckbox.checked && ageCheckbox.checked);
   }
 
-  /**
-   * Displays the Terms & Policy modal on page load if user hasn't already accepted.
-   * This is a blocking modal — user cannot proceed without accepting.
-   */
   function showTermsModal() {
-    if (!hasAgreedToTerms) {
-      termsBackdrop.classList.add('show');
-    }
+    if (!hasAgreedToTerms) termsBackdrop.classList.add('show');
   }
 
-  /**
-   * Hides the Terms & Policy modal. Called after successful submission.
-   */
   function hideTermsModal() {
     termsBackdrop.classList.remove('show');
   }
 
-  /**
-   * Submits the user's terms acceptance to the server via POST.
-   * Collects checkbox states for:
-   * - terms_and_conditions (required)
-   * - age_confirmation (required)
-   * - promotional_emails (optional)
-   */
   async function submitTermsAndPolicy() {
     const formData = new FormData();
     formData.append('terms_and_conditions', termsCheckbox.checked ? 'on' : 'off');
@@ -1924,27 +1583,20 @@
         hideTermsModal();
         showToast('Terms accepted! Welcome to Chichi 🎉', 'success');
       } else {
-        showError(data.message || 'Failed to accept terms');
+        showTermsError(data.message || 'Failed to accept terms');
       }
     } catch (error) {
       console.error('Error submitting terms:', error);
-      showError('An error occurred. Please try again.');
+      showTermsError('An error occurred. Please try again.');
     }
   }
 
-  /**
-   * Displays error message in the terms modal for 3 seconds.
-   */
-  function showError(message) {
+  function showTermsError(message) {
     termsError.textContent = message;
     termsError.classList.add('show');
     setTimeout(() => termsError.classList.remove('show'), 3000);
   }
 
-  /**
-   * Utility: Retrieves CSRF token from browser cookies.
-   * Required for Django form submissions.
-   */
   function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -1960,51 +1612,39 @@
     return cookieValue;
   }
 
-  /* ════════════════════════════════════════════════════════════════════════════════
-     TERMS & POLICY EVENT LISTENERS
-     ════════════════════════════════════════════════════════════════════════════════ */
-
-  // Validate checkbox states when user interacts
   termsCheckbox.addEventListener('change', checkTermsValidation);
   ageCheckbox.addEventListener('change', checkTermsValidation);
 
-  // Handle Accept button click
   termsAcceptBtn.addEventListener('click', async () => {
     termsAcceptBtn.disabled = true;
     termsAcceptBtn.textContent = 'Accepting...';
     await submitTermsAndPolicy();
-    if (hasAgreedToTerms) {
+    if (!hasAgreedToTerms) {
       termsAcceptBtn.disabled = false;
       termsAcceptBtn.textContent = 'Accept & Continue';
     }
   });
 
-  // Handle Cancel button click (mainly for clearing error state)
   termsCancelBtn.addEventListener('click', () => {
-    // User cannot proceed without accepting terms, so this mainly clears error
     termsError.classList.remove('show');
   });
 
-  // Prevent dismissing modal by clicking backdrop
   termsBackdrop.addEventListener('click', e => {
-    if (e.target === termsBackdrop) {
-      e.preventDefault();
-    }
+    if (e.target === termsBackdrop) e.preventDefault();
   });
 
-  // Show terms modal on page load if user hasn't accepted
-  document.addEventListener('DOMContentLoaded', () => {
-    showTermsModal();
-  });
+  document.addEventListener('DOMContentLoaded', showTermsModal);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════
+     PANEL & STATUS HELPERS
+     ════════════════════════════════════════════════════════════════════════ */
+
   function showPanel(name) {
     panelIdle.classList.remove('active');
     panelWaiting.classList.remove('active');
     panelMatched.classList.remove('active');
     document.getElementById('panel' + name.charAt(0).toUpperCase() + name.slice(1))
             .classList.add('active');
-    // Show FABs whenever we're in the matched panel (normal or game mode)
     if (name === 'matched') {
       fabStack.classList.add('fab-visible');
     } else {
@@ -2052,13 +1692,13 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
-  // ── Camera ────────────────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════
+     CAMERA
+     ════════════════════════════════════════════════════════════════════════ */
+
   async function startCamera() {
     try {
       if (cameraStream) {
-        // Re-enable existing tracks — device is still held, no new getUserMedia needed.
-        // This avoids the black-feed bug where the browser won't give a new stream
-        // while the old (disabled) tracks still hold the device.
         cameraStream.getVideoTracks().forEach(t => { t.enabled = true; });
         cameraStream.getAudioTracks().forEach(t => { t.enabled = true; });
         localVideo.srcObject = cameraStream;
@@ -2067,8 +1707,6 @@
         addLog('Camera resumed', 'event');
         return;
       }
-
-      // First time — acquire device
       cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       localVideo.srcObject = cameraStream;
       localPlaceholder.style.display = 'none';
@@ -2083,8 +1721,6 @@
 
   function stopCamera() {
     if (cameraStream) {
-      // Disable tracks — keeps the RTCRtpSender alive (remote won't freeze),
-      // keeps the device held so re-enable works instantly without a new getUserMedia.
       cameraStream.getVideoTracks().forEach(t => { t.enabled = false; });
       cameraStream.getAudioTracks().forEach(t => { t.enabled = false; });
       localVideo.srcObject = null;
@@ -2094,7 +1730,6 @@
   }
 
   function muteCamera() {
-    // Hard stop — called on disconnect/leave where we truly want to release the device.
     if (cameraStream) {
       cameraStream.getTracks().forEach(t => t.stop());
       cameraStream = null;
@@ -2104,16 +1739,17 @@
     }
   }
 
-  // ── PiP morph helpers ─────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════
+     GAME MODE (PiP morph)
+     ════════════════════════════════════════════════════════════════════════ */
+
   function activateGameMode() {
     matchedContent.classList.add('game-active');
-    // FABs remain visible (already shown when matched panel is active)
     gameActive = true;
   }
 
   function deactivateGameMode() {
     matchedContent.classList.remove('game-active');
-    // FABs remain visible (still in matched panel)
     gameActive = false;
     _localResultShown = false;
     if (_activeGame) {
@@ -2121,93 +1757,14 @@
       _activeGame = null;
     }
     gameResultBanner.classList.remove('visible');
-    // Close game chat overlay
     const gcOverlay = document.getElementById('gameChatOverlay');
     if (gcOverlay) gcOverlay.classList.remove('open');
   }
 
-  // ── Countdown ─────────────────────────────────────────────────────────────
-  function startCountdown(onComplete) {
-    let count = 5;
+  /* ════════════════════════════════════════════════════════════════════════
+     COUNTDOWN
+     ════════════════════════════════════════════════════════════════════════ */
 
-    countdownNumber.textContent = count;
-    countdownOverlay.classList.remove('hidden');
-
-    // Kick off first pop
-    function tick() {
-      // Reset animation by re-cloning
-      countdownNumber.classList.remove('pop');
-      void countdownNumber.offsetWidth; // reflow
-      countdownNumber.classList.add('pop');
-
-      if (count <= 0) {
-        // Countdown done
-        countdownOverlay.classList.add('hidden');
-        onComplete();
-        return;
-      }
-
-      count--;
-      countdownNumber.textContent = count + 1; // show current then decrement
-
-      countdownTimer = setTimeout(() => {
-        countdownNumber.textContent = count <= 0 ? '🎮' : count;
-        tick();
-      }, 1000);
-    }
-
-    // Start immediately
-    countdownNumber.textContent = count;
-    countdownNumber.classList.remove('pop');
-    void countdownNumber.offsetWidth;
-    countdownNumber.classList.add('pop');
-
-    countdownTimer = setTimeout(() => {
-      count--;
-      if (count <= 0) {
-        countdownNumber.textContent = '🎮';
-        countdownNumber.classList.remove('pop');
-        void countdownNumber.offsetWidth;
-        countdownNumber.classList.add('pop');
-        countdownTimer = setTimeout(() => {
-          countdownOverlay.classList.add('hidden');
-          onComplete();
-        }, 900);
-        return;
-      }
-      countdownNumber.textContent = count;
-      countdownNumber.classList.remove('pop');
-      void countdownNumber.offsetWidth;
-      countdownNumber.classList.add('pop');
-
-      // Recursively schedule
-      let remaining = count - 1;
-      function schedule() {
-        countdownTimer = setTimeout(() => {
-          if (remaining <= 0) {
-            countdownNumber.textContent = '🎮';
-            countdownNumber.classList.remove('pop');
-            void countdownNumber.offsetWidth;
-            countdownNumber.classList.add('pop');
-            countdownTimer = setTimeout(() => {
-              countdownOverlay.classList.add('hidden');
-              onComplete();
-            }, 900);
-            return;
-          }
-          countdownNumber.textContent = remaining;
-          countdownNumber.classList.remove('pop');
-          void countdownNumber.offsetWidth;
-          countdownNumber.classList.add('pop');
-          remaining--;
-          schedule();
-        }, 1000);
-      }
-      schedule();
-    }, 1000);
-  }
-
-  // Cleaner countdown implementation (replaces messy nested one above at runtime)
   function runCountdown(onComplete) {
     if (countdownTimer) { clearTimeout(countdownTimer); countdownTimer = null; }
 
@@ -2220,7 +1777,6 @@
       const val = sequence[idx];
       countdownNumber.textContent = val;
       countdownNumber.classList.remove('pop');
-      // force reflow so animation restarts
       void countdownNumber.offsetWidth;
       countdownNumber.classList.add('pop');
       idx++;
@@ -2228,7 +1784,6 @@
       if (idx < sequence.length) {
         countdownTimer = setTimeout(step, 1000);
       } else {
-        // last frame shown — wait for animation then go
         countdownTimer = setTimeout(() => {
           countdownOverlay.classList.add('hidden');
           countdownTimer = null;
@@ -2240,22 +1795,26 @@
     step();
   }
 
-  // ── Show game result ───────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════
+     GAME RESULT
+     ════════════════════════════════════════════════════════════════════════ */
+
   function showGameResult(winner, myRole) {
     const won  = winner === myRole;
     const draw = winner === 'draw';
-
     gameResultTitle.textContent = draw ? 'Draw!' : won ? 'You win! 🎉' : 'You lose.';
     gameResultSub.textContent   = draw
       ? 'Close one. Try again?'
       : won
         ? 'Well played. What\'s next?'
         : 'Better luck next time.';
-
     gameResultBanner.classList.add('visible');
   }
 
-  // ── GAME REGISTRY — add new games here ──────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════
+     GAME REGISTRY
+     ════════════════════════════════════════════════════════════════════════ */
+
   const GAME_REGISTRY = [
     {
       code:    "3mm",
@@ -2276,7 +1835,7 @@
     {
       code:    "cks",
       label:   "Checkers",
-      icon:    "bi bi-check-square",
+      icon:    "bi-check-square",
       status:  "live",
       module:  () => Checkers,
       routeMove(msg) { Checkers.handleRemoteMove(msg); },
@@ -2284,99 +1843,172 @@
     {
       code:    "sdk",
       label:   "Sudoku",
-      icon:    "bi bi-grid-3x3-gap-fill",
+      icon:    "bi-grid-3x3-gap-fill",
       status:  "live",
       module:  () => Sudoku,
       routeMove(msg) { Sudoku.handleRemoteMove(msg); },
     },
-    // Example — uncomment when Chess module is ready:
-    // {
-    //   code:   "chess",
-    //   label:  "Chess",
-    //   icon:   "bi-trophy",
-    //   status: "soon",
-    //   module: () => Chess,
-    //   routeMove(msg) { Chess.handleRemoteMove(msg); },
-    // },
   ];
 
-  // Active game engine reference
-  let _activeGame = null;   // GAME_REGISTRY entry currently running
+  let _activeGame = null;
 
-  // Populate both dropdowns from registry
-  function buildGameDropdowns() {
-    const targets = [
-      { el: document.getElementById("gamesDropdown"),    fab: false },
-      { el: document.getElementById("fabGamesDropdown"), fab: true  },
-    ];
-    targets.forEach(({ el }) => {
-      el.innerHTML = "";
-      GAME_REGISTRY.forEach(g => {
-        const btn = document.createElement("button");
-        btn.className = "games-dropdown-item";
-        const soon = g.status === "soon";
-        btn.innerHTML = `
-          <i class="bi ${g.icon}"></i>
-          ${g.label}
-          <span class="game-badge">${g.status}</span>`;
-        btn.disabled = soon;
-        if (soon) btn.style.opacity = "0.5";
-        btn.addEventListener("click", () => {
-          closeAllDropdowns();
-          if (!soon) initiateGame(g.code);
-        });
-        el.appendChild(btn);
-      });
+  /* ════════════════════════════════════════════════════════════════════════
+     VIBE SELECTION UI
+     ════════════════════════════════════════════════════════════════════════ */
+
+  // Populate game picker grid
+  (function buildVibeGameGrid() {
+    const grid = document.getElementById('vsGameGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    GAME_REGISTRY.filter(g => g.status === 'live').forEach(g => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'vs-game-btn';
+      btn.dataset.gameCode = g.code;
+      btn.innerHTML = `<i class="bi ${g.icon}"></i> ${g.label}`;
+      btn.addEventListener('click', () => _selectGame(g.code, btn));
+      grid.appendChild(btn);
     });
+  })();
+
+  function _selectVibe(vibe, card) {
+    _selectedVibe = vibe;
+    _selectedGame = null;
+
+    document.querySelectorAll('.vs-card').forEach(c => {
+      c.classList.remove('vs-selected');
+      c.setAttribute('aria-pressed', 'false');
+    });
+    card.classList.add('vs-selected');
+    card.setAttribute('aria-pressed', 'true');
+
+    const picker = document.getElementById('vsGamePicker');
+    if (vibe === 'board_game') {
+      picker.classList.add('visible');
+      picker.setAttribute('aria-hidden', 'false');
+      document.querySelectorAll('.vs-game-btn').forEach(b => b.classList.remove('vs-game-selected'));
+    } else {
+      picker.classList.remove('visible');
+      picker.setAttribute('aria-hidden', 'true');
+    }
+
+    _refreshFindBtn();
   }
 
-  function closeAllDropdowns() {
-    document.getElementById("gamesDropdown").classList.remove("open");
-    document.getElementById("fabGamesDropdown").classList.remove("open");
+  function _selectGame(code, btn) {
+    _selectedGame = code;
+    document.querySelectorAll('.vs-game-btn').forEach(b => b.classList.remove('vs-game-selected'));
+    btn.classList.add('vs-game-selected');
+    _refreshFindBtn();
   }
 
-  // Build on load
-  buildGameDropdowns();
+  function _refreshFindBtn() {
+    const btn   = document.getElementById('btnConnect');
+    const label = document.getElementById('btnConnectLabel');
 
-  // Toggle normal dropdown
-  document.getElementById("btnPlayGame").addEventListener("click", (e) => {
-    e.stopPropagation();
-    const dd = document.getElementById("gamesDropdown");
-    dd.classList.toggle("open");
-    document.getElementById("fabGamesDropdown").classList.remove("open");
+    const ready = _selectedVibe === 'casual'
+      || (_selectedVibe === 'board_game' && _selectedGame);
+
+    btn.disabled = !ready;
+
+    if (!_selectedVibe) {
+      label.textContent = 'Find Match';
+    } else if (_selectedVibe === 'casual') {
+      label.textContent = 'Find Someone to Chat';
+    } else if (_selectedGame) {
+      const entry = GAME_REGISTRY.find(g => g.code === _selectedGame);
+      label.textContent = entry ? `Find a ${entry.label} Partner` : 'Find Match';
+    } else {
+      label.textContent = 'Pick a Game First';
+    }
+  }
+
+  document.querySelectorAll('.vs-card').forEach(card => {
+    card.addEventListener('click', () => _selectVibe(card.dataset.vibe, card));
   });
 
-  // Toggle FAB dropdown
-  document.getElementById("fabPlayGame").addEventListener("click", (e) => {
-    e.stopPropagation();
-    const dd = document.getElementById("fabGamesDropdown");
-    dd.classList.toggle("open");
-    document.getElementById("gamesDropdown").classList.remove("open");
-  });
+  /* ════════════════════════════════════════════════════════════════════════
+     VIBE BANNER & WAITING COPY
+     ════════════════════════════════════════════════════════════════════════ */
 
-  // Close dropdowns on outside click
-  document.addEventListener("click", closeAllDropdowns);
+  function _showVibeBanner(ctx) {
+    const banner = document.getElementById('vibeBanner');
+    if (!banner) return;
+    banner.className = 'vibe-banner';
+    banner.style.display = '';
 
+    if (ctx.vibe === 'board_game' && ctx.game) {
+      banner.classList.add('vibe-board-game');
+      const entry = GAME_REGISTRY.find(g => g.code === ctx.game);
+      const label = ctx.gameLabel || (entry ? entry.label : ctx.game);
+      const icon  = entry ? `<i class="bi ${entry.icon}"></i>` : '🎲';
+      banner.innerHTML = `<span class="vibe-banner-emoji">🎲</span> Both here for <strong>Board Games</strong> · ${icon} <strong>${label}</strong>`;
+    } else {
+      banner.classList.add('vibe-casual');
+      banner.innerHTML = `<span class="vibe-banner-emoji">💬</span> Both here for <strong>Casual Chat</strong> — say hello!`;
+    }
+  }
+
+  function _hideVibeBanner() {
+    const banner = document.getElementById('vibeBanner');
+    if (banner) banner.style.display = 'none';
+  }
+
+  /**
+   * FIX — _setWaitingCopy: uses ctx.gameLabel (human-readable from server)
+   * not ctx.game (raw code). Falls back to GAME_REGISTRY label, then code.
+   * Always resets to neutral text for casual so it never shows stale game copy.
+   */
+  function _setWaitingCopy(ctx) {
+    const heading = document.getElementById('waitingHeading');
+    const sub     = document.getElementById('waitingSub');
+    if (!heading || !sub) return;
+
+    if (ctx.vibe === 'board_game' && ctx.game) {
+      // Prefer server-sent human label; fall back to local registry label; then the raw code
+      const entry = GAME_REGISTRY.find(g => g.code === ctx.game);
+      const label = ctx.gameLabel || (entry ? entry.label : ctx.game);
+      heading.textContent = `Finding a ${label} partner…`;
+      sub.textContent     = 'Matching you with someone who picked the same game';
+    } else {
+      // Casual or unknown — always neutral copy, never leaks game names
+      heading.textContent = 'Finding someone to chat with…';
+      sub.textContent     = 'Matching you with someone up for a casual conversation';
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════════════
+     GAME LAUNCH
+     FIX — double-launch guard: _gameStarted flag prevents the offerer from
+     running launchGame() twice when they initiate via initiateGame() AND
+     then receive the server's broadcast back.
+     ════════════════════════════════════════════════════════════════════════ */
+
+  let _gameStarted = false;   // FIX: global guard cleared on deactivateGameMode/rematch
+
+  function _clearGameStarted() { _gameStarted = false; }
 
   function initiateGame(gameCode) {
     if (gameActive) { showToast('Finish the current game first', 'warn'); return; }
     const entry = GAME_REGISTRY.find(g => g.code === gameCode);
     if (!entry) return;
     _activeGame = entry;
+    _gameStarted = true;          // FIX: mark as started so onGameStart skips us
     MatchClient.startGame(gameCode);
     addLog(`Sent game invite (${gameCode.toUpperCase()})`, 'event');
     showToast('Game starting!', 'success');
-    launchGame(true);
+    launchGame(true);             // offerer launches immediately
   }
 
   function launchGame(isOfferer) {
-    if (gameActive) return;  // guard against double-launch
+    if (gameActive) return;       // already in a game
     if (!_activeGame) return;
     const engine = _activeGame.module();
     runCountdown(() => {
       activateGameMode();
       addLog(`Game started: ${_activeGame.label}`, 'event');
-      _localResultShown = false;   // reset for this game
+      _localResultShown = false;
 
       engine.init('gameBoard', isOfferer, (winner) => {
         const myRole = isOfferer ? 'offerer' : 'answerer';
@@ -2388,28 +2020,21 @@
     });
   }
 
-  /* ════════════════════════════════════════════════════════════════════════════════
-     WEBSOCKET & MATCH CLIENT CONFIGURATION
-     ════════════════════════════════════════════════════════════════════════════════
-     
-     Configures the WebSocket connection and handles all real-time events:
-     - Waiting and matching state
-     - Peer connection & disconnection
-     - Remote video stream
-     - Game invitations and moves
-     - Chat messages
-     - Error handling
-  */
+  /* ════════════════════════════════════════════════════════════════════════
+     WEBSOCKET / MATCH CLIENT CONFIGURATION
+     ════════════════════════════════════════════════════════════════════════ */
 
   MatchClient.configure({
 
-    onWaiting() {
+    onWaiting(ctx) {
+      _setWaitingCopy(ctx);
       showPanel('waiting');
       setStatus('waiting', 'searching...');
-      addLog('Looking for a partner', 'event');
+      const ctxLabel = ctx.gameLabel || (ctx.vibe === 'casual' ? 'casual chat' : ctx.vibe || 'match');
+      addLog(`Looking for a ${ctxLabel} partner`, 'event');
     },
 
-    onMatched(sessionId) {
+    onMatched(sessionId, ctx) {
       showPanel('matched');
       setStatus('matched', 'connected');
       sessionIdDisplay.textContent = sessionId.slice(0, 8);
@@ -2417,17 +2042,21 @@
       remotePlaceholder.style.display = '';
       remotePlaceholder.querySelector('span').textContent = 'connecting...';
 
-      // Reset report state for the new session
       hasReported = false;
       btnReport.disabled = false;
       btnReport.classList.remove('reported');
       btnReport.innerHTML = '<i class="bi bi-flag"></i> Report';
 
-      // Revert any leftover game state
+      // FIX: reset game-started guard on every new match
+      _clearGameStarted();
+
       if (gameActive) deactivateGameMode();
 
-      addLog('Connected with partner', 'event');
-      showToast('Partner found!', 'success');
+      _showVibeBanner(ctx);
+
+      const ctxLabel = ctx.gameLabel || (ctx.vibe === 'casual' ? 'casual chat' : 'a game');
+      addLog(`Connected · vibe: ${ctxLabel}`, 'event');
+      showToast('Partner found! 🎉', 'success');
     },
 
     onPeerLeft() {
@@ -2439,10 +2068,10 @@
       addLog('Partner disconnected → rematching', 'warn');
       showToast('Skipping...', 'warn');
 
-      // Revert game mode immediately
       if (gameActive) deactivateGameMode();
+      _clearGameStarted();
+      _hideVibeBanner();
 
-      // Clear countdown if mid-count
       if (countdownTimer) { clearTimeout(countdownTimer); countdownTimer = null; }
       countdownOverlay.classList.add('hidden');
 
@@ -2455,7 +2084,6 @@
         sessionIdDisplay.textContent = '—';
         showPanel('waiting');
       }, 800);
-      // NOTE: MatchClient auto-rematches after peer_left — do NOT call rematch() here
     },
 
     onTrack(event) {
@@ -2463,10 +2091,7 @@
       remotePlaceholder.style.display = 'none';
       addLog('Video stream connected', 'event');
 
-      // Force play — some browsers block autoplay silently
-      // causing white screen even though stream is attached
       remoteVideo.play().catch(() => {
-        // Autoplay blocked — retry on next user interaction
         const resumePlay = () => {
           remoteVideo.play().catch(() => {});
           document.removeEventListener('click', resumePlay);
@@ -2487,31 +2112,41 @@
       addLog('ICE watchdog triggered', 'warn');
     },
 
-    // ── GAME ENGINE callbacks ──────────────────────────────────────────────
+    // ── GAME CALLBACKS ──────────────────────────────────────────────────────
+
     onGameStart(msg) {
-      addLog(`Game invite received: ${msg.game_type}`, 'event');
-      showToast('Game starting!', 'success');
-      // Receiver side — look up game in registry
+      // FIX: if _gameStarted is true this peer is the offerer who already
+      // called launchGame() from initiateGame() — skip to avoid double-launch.
+      if (_gameStarted) {
+        _gameStarted = false;   // consume the flag; answerer won't have it set
+        return;
+      }
+
+      const isAuto = !!msg.auto;
+      addLog(
+        isAuto
+          ? `Auto-starting ${msg.game_type} (board game vibe)`
+          : `Game invite received: ${msg.game_type}`,
+        'event'
+      );
+      showToast(isAuto ? '🎲 Game launching!' : 'Game starting!', 'success');
+
       const entry = GAME_REGISTRY.find(g => g.code === msg.game_type);
       if (entry) {
         _activeGame = entry;
-        launchGame(false);
+        launchGame(MatchClient.isOfferer);
       } else {
         addLog(`Unknown game type: ${msg.game_type}`, 'warn');
       }
     },
 
     onGameResult(msg) {
-      // Fired when the peer sends game_over — only show banner if the local
-      // engine callback hasn't already displayed it for this player.
       if (_localResultShown) return;
       const myRole = MatchClient.isOfferer ? 'offerer' : 'answerer';
       showGameResult(msg.winner, myRole);
     },
 
     onGameMove(msg) {
-      // MatchClient wraps game code as msg.game_type (same as onGameStart).
-      // Also check msg.sub_type and msg.game as fallbacks for older versions.
       const code = msg.game_type || msg.sub_type || msg.game;
       const entry = _activeGame || GAME_REGISTRY.find(g => g.code === code);
       if (entry) {
@@ -2524,7 +2159,6 @@
     onChat(message) {
       addChatMessage(message.text, 'theirs');
       addGameChatMessage(message.text, 'theirs');
-      // Show unread dot if chat overlay isn't currently open
       if (!gameChatOverlay.classList.contains('open')) {
         document.getElementById('fabChat').classList.add('has-unread');
       }
@@ -2535,14 +2169,9 @@
     },
   });
 
-  /* ════════════════════════════════════════════════════════════════════════════════
-     CHAT SYSTEM (MAIN & GAME MODE)
-     ════════════════════════════════════════════════════════════════════════════════
-     
-     Dual-view chat:
-     - Main chat panel (always visible in matched state)
-     - Game chat overlay (floating during game mode)
-  */
+  /* ════════════════════════════════════════════════════════════════════════
+     CHAT SYSTEM
+     ════════════════════════════════════════════════════════════════════════ */
 
   const gameChatOverlay  = document.getElementById('gameChatOverlay');
   const gameChatMessages = document.getElementById('gameChatMessages');
@@ -2588,7 +2217,6 @@
   gameChatInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendGameChat(); });
   gameChatClose.addEventListener('click', () => gameChatOverlay.classList.remove('open'));
 
-  // FAB Chat toggle
   document.getElementById('fabChat').addEventListener('click', (e) => {
     e.stopPropagation();
     gameChatOverlay.classList.toggle('open');
@@ -2598,7 +2226,7 @@
     }
   });
 
-  // ── Chat & Log Tab Switching ─────────────────────────────────────────────────
+  // Tab switching
   document.querySelectorAll('.chat-tab').forEach(tab => {
     tab.addEventListener('click', function () {
       document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
@@ -2609,14 +2237,20 @@
     });
   });
 
-  /* ════════════════════════════════════════════════════════════════════════════════
-     USER INTERFACE CONTROLS & EVENT HANDLERS
-     ════════════════════════════════════════════════════════════════════════════════ */
+  /* ════════════════════════════════════════════════════════════════════════
+     UI CONTROLS
+     ════════════════════════════════════════════════════════════════════════ */
 
-  // ── Main Control Buttons ──────────────────────────────────────────────────────
   document.getElementById('btnConnect').addEventListener('click', () => {
+    if (!_selectedVibe) return;
+
+    MatchClient.configure({
+      vibe: _selectedVibe,
+      game: _selectedGame || null,
+    });
+
     setStatus('waiting', 'connecting...');
-    addLog('Connecting...', 'info');
+    addLog(`Connecting (vibe: ${_selectedVibe}${_selectedGame ? ' · ' + _selectedGame : ''})`, 'info');
     startCamera();
     MatchClient.connect();
   });
@@ -2626,6 +2260,9 @@
     setStatus('', 'disconnected');
     showPanel('idle');
     muteCamera();
+    // FIX: reset waiting copy so next open shows neutral text
+    document.getElementById('waitingHeading').textContent = 'finding someone...';
+    document.getElementById('waitingSub').textContent = 'hang tight, we\'re looking for a match';
     addLog('Cancelled', 'info');
   });
 
@@ -2636,19 +2273,14 @@
   document.getElementById('fabCamera').addEventListener('click', () => {
     if (cameraOn) {
       stopCamera();
-      document.getElementById('fabCamera').querySelector('svg, i').setAttribute('data-lucide', 'video-off');
-      lucide.createIcons();
     } else {
       startCamera();
-      document.getElementById('fabCamera').querySelector('svg, i').setAttribute('data-lucide', 'video');
-      lucide.createIcons();
     }
   });
 
-  // btnPlayGame and fabPlayGame handled above by dropdown logic
-
   function doRematch() {
     if (gameActive) deactivateGameMode();
+    _clearGameStarted();
     if (countdownTimer) { clearTimeout(countdownTimer); countdownTimer = null; }
     countdownOverlay.classList.add('hidden');
 
@@ -2661,6 +2293,12 @@
         <p>say hello to your friend</p>
       </div>`;
     sessionIdDisplay.textContent = '—';
+    _hideVibeBanner();
+
+    // FIX: reset waiting copy to neutral before rematch so stale game text is gone
+    document.getElementById('waitingHeading').textContent = 'finding someone...';
+    document.getElementById('waitingSub').textContent = 'hang tight, we\'re looking for a match';
+
     setStatus('waiting', 'rematching...');
     addLog('Looking for a new friend', 'event');
     showToast('Finding new match...', 'success');
@@ -2670,19 +2308,20 @@
 
   function doLeave() {
     if (gameActive) deactivateGameMode();
+    _clearGameStarted();
     MatchClient.disconnect();
     muteCamera();
     setStatus('', 'disconnected');
     showPanel('idle');
     chatMessages.innerHTML = '';
     logMessages.innerHTML  = '';
+    _hideVibeBanner();
     addLog('Disconnected', 'info');
   }
 
   document.getElementById('btnRematch').addEventListener('click', doRematch);
   document.getElementById('btnLeave').addEventListener('click', doLeave);
 
-  // ── Floating Action Buttons (FABs) ───────────────────────────────────────────
   document.getElementById('fabRematch').addEventListener('click', doRematch);
   document.getElementById('fabLeave').addEventListener('click', doLeave);
 
@@ -2691,7 +2330,6 @@
     openReportModal();
   });
 
-  // ── Game Result Banner Buttons ───────────────────────────────────────────────
   document.getElementById('resultRematch').addEventListener('click', doRematch);
   document.getElementById('resultStay').addEventListener('click', () => {
     deactivateGameMode();
@@ -2699,7 +2337,10 @@
     showToast('Back to chat!', 'success');
   });
 
-  // ── Report flow ───────────────────────────────────────────────────────────
+  /* ════════════════════════════════════════════════════════════════════════
+     REPORT FLOW
+     ════════════════════════════════════════════════════════════════════════ */
+
   function openReportModal() {
     reportBackdrop.classList.add('open');
     reportConfirmBtn.disabled = false;
@@ -2718,11 +2359,7 @@
   });
 
   reportCancelBtn.addEventListener('click', closeReportModal);
-
-  reportBackdrop.addEventListener('click', e => {
-    if (e.target === reportBackdrop) closeReportModal();
-  });
-
+  reportBackdrop.addEventListener('click', e => { if (e.target === reportBackdrop) closeReportModal(); });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && reportBackdrop.classList.contains('open')) closeReportModal();
   });
@@ -2764,7 +2401,7 @@
   function _onReportResponse(callback) {
     let fired = false;
 
-    function handleAck(msg) {
+    function handleAck() {
       if (fired) return;
       fired = true; off();
       callback({ type: 'report_ack' });
@@ -2790,123 +2427,22 @@
     return off;
   }
 
-  // Patch MatchClient.connect to route report_ack (compatibility shim)
-  (function patchMatchClientRouter() {
-    const origConnect = MatchClient.connect.bind(MatchClient);
-    MatchClient.connect = function () {
-      origConnect();
-      setTimeout(() => {}, 0);
-    };
-  })();
+  /* ════════════════════════════════════════════════════════════════════════
+     MISC
+     ════════════════════════════════════════════════════════════════════════ */
 
-  /* ════════════════════════════════════════════════════════════════════════════════
-     MISCELLANEOUS
-     ════════════════════════════════════════════════════════════════════════════════ */
-
-  // ── Footer Year ───────────────────────────────────────────────────────────────
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  /* ════════════════════════════════════════════════════════════════════════════
-     PAGE LOADER LOGIC
-     ════════════════════════════════════════════════════════════════════════════ */
+  // Page loader
   (function () {
-    const loader   = document.getElementById('page-loader');
-    const bar      = document.getElementById('loaderBar');
-    const tagline  = document.getElementById('loaderTagline');
-    const termBody = document.getElementById('loaderTermBody');
-    const cursor   = document.getElementById('loaderCursor');
-
-    // ── Narrative lines ──────────────────────────────────────────────────────
-    // Each entry: [delayMs, html, progressPercent, taglineText]
-    const SCRIPT = [
-      [0,    `<span class="prompt">›</span>booting conversation engine`, 4,  'hang tight'],
-      [420,  `<span class="prompt">›</span>warming up the matchmaking <span class="dim">— still manual tbh</span>`, 14, 'almost there'],
-      [860,  `<span class="prompt">›</span>confirming you are not a bot <span class="ok">✓ probably human</span>`, 26, 'good signs'],
-      [1300, `<span class="prompt">›</span>loading camera permissions <span class="warn">⚠ brace yourself</span>`, 38, 'cameras incoming'],
-      [1680, `<span class="prompt">›</span>importing small talk database <span class="dim">— 4 topics found</span>`, 50, 'so much to say'],
-      [2060, `<span class="prompt">›</span>stress-testing awkward silence handler`, 63, 'testing vibes'],
-      [2400, `<span class="prompt">›</span>recalibrating cosmic serendipity <span class="ok">✓ aligned</span>`, 74, 'fate loading'],
-      [2720, `<span class="prompt">›</span>hiding your search history <span class="ok">✓ done</span>`, 85, 'you are safe'],
-      [3020, `<span class="prompt">›</span>polishing the interface <span class="dim">— unnecessary but nice</span>`, 94, 'almost'],
-      [3280, `<span class="prompt">›</span>ready <span class="ok">✓ let's go</span>`, 100, 'ready'],
-    ];
-
-    let lineCount = 0;
-
-    function addLine(html) {
-      // Move cursor out of last line first
-      if (cursor.parentElement) cursor.remove();
-
-      const span = document.createElement('span');
-      span.className = 'loader-line';
-      span.innerHTML = html;
-      termBody.appendChild(span);
-      // Force reflow then reveal
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          span.classList.add('visible');
-        });
-      });
-      // Append cursor to end of new line
-      span.appendChild(cursor);
-      // Keep only last 5 lines visible (scroll feel)
-      const lines = termBody.querySelectorAll('.loader-line');
-      if (lines.length > 5) {
-        lines[0].style.transition = 'none';
-        lines[0].style.opacity = '0';
-        setTimeout(() => lines[0].remove(), 180);
-      }
-    }
-
-    // Remove the seed line (already in HTML) and replace with scripted run
-    function runScript() {
-      // Remove the placeholder first line from HTML
-      const seedLine = document.getElementById('ll0');
-      if (seedLine) seedLine.remove();
-
-      SCRIPT.forEach(([delay, html, progress, tag], i) => {
-        setTimeout(() => {
-          addLine(html);
-          bar.style.width = progress + '%';
-          tagline.textContent = tag;
-
-          // Last step: dismiss loader
-          if (i === SCRIPT.length - 1) {
-            setTimeout(dismissLoader, 480);
-          }
-        }, delay);
-      });
-    }
-
-    function dismissLoader() {
+    const loader = document.getElementById('page-loader');
+    if (!loader) return;
+    function dismiss() {
+      loader.getBoundingClientRect();
       loader.classList.add('loader-hidden');
-      // Remove from DOM after transition so it doesn't trap focus
-      loader.addEventListener('transitionend', () => {
-        loader.remove();
-      }, { once: true });
+      setTimeout(() => { if (loader.parentElement) loader.remove(); }, 650);
     }
-
-    // ── Wait for page resources before starting ───────────────────────────────
-    // We wait for DOMContentLoaded + a minimum display time so the user actually
-    // sees the loader even on fast connections. On slow connections, we wait for
-    // the real load event too.
-    let domReady  = false;
-    let minTimeDone = false;
-
-    function maybeStart() {
-      if (domReady && minTimeDone) runScript();
-    }
-
-    // Minimum display: 300ms (just enough to not flash)
-    setTimeout(() => { minTimeDone = true; maybeStart(); }, 300);
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => { domReady = true; maybeStart(); });
-    } else {
-      domReady = true;
-      maybeStart();
-    }
-
+    requestAnimationFrame(() => requestAnimationFrame(dismiss));
   })();
 
 </script>

@@ -1,30 +1,39 @@
 /**
- * match_client.js  — hardened + game engine + video frame detection edition
+ * match_client.js — Vibe-Aware Matchmaking Edition
  *
- *  ADD 1: Auto-rematch on peer_left (1-second delay, then rematch() fires automatically).
- *         connect.html onPeerLeft should only handle UI now — do NOT call rematch() there.
+ *  VIBE-1: Vibe selection before matching
+ *    MatchClient.configure() now accepts:
+ *      vibe:  "casual" | "board_game"   (required before connect())
+ *      game:  "<code>"                  (required when vibe === "board_game")
+ *    These are sent to the server as a "join" message immediately after the
+ *    WebSocket opens, so the server can place the user in the right pool.
  *
- *  ADD 2: ICE connection watchdog (5 seconds).
- *         Cancelled on "connected"/"completed". Fires on "failed"/"disconnected" or timeout.
- *         Sends {"type":"watchdog_timeout"} to server; server acks with "watchdog_ack".
- *         cfg.onWatchdogTimeout() lets the UI show a toast before the auto-rematch.
+ *  VIBE-2: Vibe context forwarded on match
+ *    The server's "matched" message now includes { vibe, game, game_label }.
+ *    cfg.onMatched(sessionId, matchCtx) receives a second argument:
+ *      matchCtx = { vibe, game, gameLabel }
+ *    The UI uses this to render the context banner.
  *
- *  ADD 3: Game engine signals.
- *         startGame(code), sendGameOver(winner), sendGameQuit()
- *         cfg.onGameStart(msg), cfg.onGameResult(msg)
- *         MatchClient.isOfferer getter for turn management.
+ *  VIBE-3: Waiting state includes vibe context
+ *    cfg.onWaiting(waitCtx) receives { vibe, game, gameLabel } so the UI can
+ *    display "Looking for someone to play Tic Tac Toe…" while waiting.
  *
- *  ADD 4: Video frame detection.
- *         After ICE connects, waits 8 seconds then checks getStats() for framesDecoded.
- *         If remote video track exists but 0 frames decoded → one-way video failure.
- *         If frames freeze mid-session (no increase in 10s) → frozen video detection.
- *         Both cases call cfg.onVideoCheckFailed() then trigger the watchdog → rematch.
+ *  VIBE-4: Board game auto-start
+ *    When the server sends game_start with { auto: true } the client fires
+ *    cfg.onGameStart(msg) exactly as before; connect.html watches msg.auto
+ *    to skip the countdown and launch immediately.
  *
- *  FIX 1-4 (wss://, ICE queue, offer-after-tracks, TURN) all preserved unchanged.
+ *  All previous fixes/features are preserved unchanged:
+ *    ADD 1  Auto-rematch on peer_left (1s delay)
+ *    ADD 2  ICE watchdog (5s), watchdog_ack → rematch
+ *    ADD 3  Game engine signals (startGame, sendGameOver, sendGameQuit)
+ *    ADD 4  Video frame detection (one-way + freeze)
+ *    FIX 1-4  wss, ICE queue, offer-after-tracks, TURN
  */
 
 const MatchClient = (() => {
 
+    // ── Config ─────────────────────────────────────────────────────────────────
     const cfg = {
         get wsUrl() {
             const proto = location.protocol === "https:" ? "wss" : "ws";
@@ -35,24 +44,33 @@ const MatchClient = (() => {
             { urls: "stun:stun1.l.google.com:19302" },
             // { urls: "turn:YOUR_HOST:3478", username: "u", credential: "s" },
         ],
-        watchdogMs:          5_000,    // ICE connection timeout
-        videoCheckMs:        6_000,    // wait after ICE connected before checking frames
-        frameMonitorMs:      8_000,   // interval to check for frozen video mid-session
-        onWaiting:           () => {},
-        onMatched:           (_sid) => {},
-        onPeerLeft:          () => {},
-        onWatchdogTimeout:   () => {},
-        onVideoCheckFailed:  () => {},   // ADD 4: one-way or frozen video detected
-        onTrack:             (_e)  => {},
-        onDataChannel:       (_ch) => {},
-        onGameMove:          (_m)  => {},
-        onSync:              (_m)  => {},
-        onChat:              (_m)  => {},
-        onCustom:            (_m)  => {},
-        onGameStart:         (_m)  => {},
-        onGameResult:        (_m)  => {},
-        onIceState:          (_s)  => {},
-        onError:             (_m)  => console.error("[MatchClient]", _m),
+        watchdogMs:         5_000,
+        videoCheckMs:       6_000,
+        frameMonitorMs:     8_000,
+
+        // ── VIBE-1: vibe/game selection ─────────────────────────────────────
+        // Set these via configure() before calling connect().
+        vibe:               null,   // "casual" | "board_game"
+        game:               null,   // game code when vibe === "board_game"
+
+        // ── Callbacks ───────────────────────────────────────────────────────
+        // VIBE-3: onWaiting now receives waitCtx = { vibe, game, gameLabel }
+        onWaiting:          (_ctx) => {},
+        // VIBE-2: onMatched now receives (sessionId, matchCtx)
+        onMatched:          (_sid, _ctx) => {},
+        onPeerLeft:         () => {},
+        onWatchdogTimeout:  () => {},
+        onVideoCheckFailed: () => {},
+        onTrack:            (_e)  => {},
+        onDataChannel:      (_ch) => {},
+        onGameMove:         (_m)  => {},
+        onSync:             (_m)  => {},
+        onChat:             (_m)  => {},
+        onCustom:           (_m)  => {},
+        onGameStart:        (_m)  => {},
+        onGameResult:       (_m)  => {},
+        onIceState:         (_s)  => {},
+        onError:            (_m)  => console.error("[MatchClient]", _m),
     };
 
     // ── Core state ─────────────────────────────────────────────────────────────
@@ -60,18 +78,18 @@ const MatchClient = (() => {
     let sessionId = null, _isOfferer = false, _isReconnecting = false;
 
     // ── Timer handles ──────────────────────────────────────────────────────────
-    let _watchdogTimer      = null;
-    let _videoCheckTimer    = null;
-    let _frameMonitorTimer  = null;
+    let _watchdogTimer     = null;
+    let _videoCheckTimer   = null;
+    let _frameMonitorTimer = null;
 
     // ── ICE + video state ──────────────────────────────────────────────────────
-    let _iceCandidateQueue  = [];
-    let _videoCheckPassed   = false;
-    let _lastFrameCount     = 0;
+    let _iceCandidateQueue = [];
+    let _videoCheckPassed  = false;
+    let _lastFrameCount    = 0;
 
     // ── Public API ─────────────────────────────────────────────────────────────
-    function configure(o)  { Object.assign(cfg, o); }
-    function connect()     { _openWebSocket(); }
+    function configure(o) { Object.assign(cfg, o); }
+    function connect()    { _openWebSocket(); }
 
     function rematch() {
         _cancelAllTimers();
@@ -102,19 +120,27 @@ const MatchClient = (() => {
     }
 
     // ── Senders ────────────────────────────────────────────────────────────────
-    function sendGameMove(p) { _send({ type: "game_move",    ...p }); }
-    function sendSync(p)     { _send({ type: "sync",         ...p }); }
-    function sendChat(t)     { _send({ type: "chat", text: t      }); }
-    function sendCustom(p)   { _send({ type: "custom",       ...p }); }
-    function sendReport()    { _send({ type: "report_peer"         }); }
+    function sendGameMove(p) { _send({ type: "game_move",   ...p }); }
+    function sendSync(p)     { _send({ type: "sync",        ...p }); }
+    function sendChat(t)     { _send({ type: "chat", text: t     }); }
+    function sendCustom(p)   { _send({ type: "custom",      ...p }); }
+    function sendReport()    { _send({ type: "report_peer"        }); }
     function startGame(code) { _send({ type: "game_start", game_type: code }); }
-    function sendGameOver(w) { _send({ type: "game_over",  winner: w       }); }
-    function sendGameQuit()  { _send({ type: "game_quit"               }); }
+    function sendGameOver(w) { _send({ type: "game_over",  winner: w      }); }
+    function sendGameQuit()  { _send({ type: "game_quit"              }); }
 
     // ── WebSocket ──────────────────────────────────────────────────────────────
     function _openWebSocket() {
         ws = new WebSocket(cfg.wsUrl);
-        ws.onopen    = () => {};
+        ws.onopen = () => {
+            // VIBE-1: immediately declare vibe/game selection so the server
+            // can route us to the correct pool. This must be the first message.
+            _send({
+                type: "join",
+                vibe: cfg.vibe,
+                game: cfg.game || undefined,
+            });
+        };
         ws.onerror   = (e) => cfg.onError(e);
         ws.onmessage = ({ data }) => {
             let msg;
@@ -135,14 +161,24 @@ const MatchClient = (() => {
         switch (msg.type) {
 
             case "waiting":
-                cfg.onWaiting();
+                // VIBE-3: pass context to callback
+                cfg.onWaiting({
+                    vibe:      msg.vibe      || cfg.vibe,
+                    game:      msg.game      || cfg.game,
+                    gameLabel: msg.game_label || "",
+                });
                 break;
 
             case "matched":
-                sessionId   = msg.session_id;
-                _isOfferer  = !!msg.is_offerer;
+                sessionId  = msg.session_id;
+                _isOfferer = !!msg.is_offerer;
                 _initPeerConnection();
-                cfg.onMatched(sessionId);
+                // VIBE-2: surface context to UI
+                cfg.onMatched(sessionId, {
+                    vibe:      msg.vibe      || "",
+                    game:      msg.game      || "",
+                    gameLabel: msg.game_label || "",
+                });
                 if (_isOfferer) await _createOffer();
                 break;
 
@@ -183,7 +219,7 @@ const MatchClient = (() => {
                 rematch();
                 break;
 
-            // ADD 3: game engine
+            // ADD 3 / VIBE-4: game engine
             case "game_start":  cfg.onGameStart(msg);  break;
             case "game_result": cfg.onGameResult(msg); break;
 
@@ -224,7 +260,7 @@ const MatchClient = (() => {
 
             if (s === "connected" || s === "completed") {
                 _cancelWatchdog();
-                _startVideoCheck();    // ADD 4: ICE ok — now verify frames flowing
+                _startVideoCheck();
             } else if (s === "failed" || s === "disconnected") {
                 _cancelVideoCheck();
                 _cancelFrameMonitor();
@@ -252,22 +288,19 @@ const MatchClient = (() => {
         _cancelWatchdog();
         cfg.onWatchdogTimeout();
         _send({ type: "watchdog_timeout" });
-        // Safety net: if server doesn't ack in 3s, rematch anyway
         setTimeout(() => {
             if (sessionId !== null && pc) rematch();
         }, 3000);
     }
 
     // ── Video frame detection (ADD 4) ──────────────────────────────────────────
-
-    // Step 1: 8 seconds after ICE connects, check if remote frames are decoding
     function _startVideoCheck() {
         _cancelVideoCheck();
         _videoCheckTimer = setTimeout(async () => {
             if (!pc || _videoCheckPassed) return;
             const failed = await _checkRemoteVideoFrames();
             if (failed) {
-                console.warn("[MatchClient] Video check failed — 0 frames decoded after 8s");
+                console.warn("[MatchClient] Video check failed — 0 frames decoded after check interval");
                 cfg.onVideoCheckFailed();
                 _triggerWatchdog();
             }
@@ -278,7 +311,6 @@ const MatchClient = (() => {
         if (_videoCheckTimer !== null) { clearTimeout(_videoCheckTimer); _videoCheckTimer = null; }
     }
 
-    // Returns true if there is an inbound video track but zero frames decoded
     async function _checkRemoteVideoFrames() {
         if (!pc) return false;
         try {
@@ -293,45 +325,36 @@ const MatchClient = (() => {
                 }
             });
 
-            if (!hasVideo) return false;   // no video track at all — not our problem
+            if (!hasVideo) return false;
 
             if (decoded > 0) {
-                // Frames flowing — start continuous monitor
                 _videoCheckPassed = true;
                 _lastFrameCount   = decoded;
                 _startFrameMonitor();
                 return false;
             }
 
-            return true;   // has video track, zero frames — one-way failure
+            return true;
         } catch {
-            return false;   // getStats failed — don't rematch on uncertainty
+            return false;
         }
     }
 
-    // Step 2: Once frames are confirmed flowing, monitor every 10s for freezes
     function _startFrameMonitor() {
         _cancelFrameMonitor();
-
         _frameMonitorTimer = setInterval(async () => {
             if (!pc) { _cancelFrameMonitor(); return; }
-
             try {
                 const stats = await pc.getStats();
                 stats.forEach(report => {
                     if (report.type === "inbound-rtp" && report.kind === "video") {
                         const current = report.framesDecoded ?? 0;
-
                         if (_lastFrameCount > 0 && current === _lastFrameCount) {
-                            // Frame count hasn't moved in 10 seconds — video frozen
-                            console.warn(
-                                "[MatchClient] Video frozen — framesDecoded stuck at", current
-                            );
+                            console.warn("[MatchClient] Video frozen — framesDecoded stuck at", current);
                             _cancelFrameMonitor();
                             cfg.onVideoCheckFailed();
                             _triggerWatchdog();
                         }
-
                         _lastFrameCount = current;
                     }
                 });
@@ -347,7 +370,6 @@ const MatchClient = (() => {
         }
     }
 
-    // Cancel all timers at once — used in rematch/disconnect/closePeerConnection
     function _cancelAllTimers() {
         _cancelWatchdog();
         _cancelVideoCheck();
@@ -387,10 +409,10 @@ const MatchClient = (() => {
         _videoCheckPassed  = false;
         _lastFrameCount    = 0;
         if (pc) {
-            pc.onicecandidate          = null;
+            pc.onicecandidate             = null;
             pc.oniceconnectionstatechange = null;
-            pc.ontrack                 = null;
-            pc.ondatachannel           = null;
+            pc.ontrack                    = null;
+            pc.ondatachannel              = null;
             pc.close();
             pc = null;
         }
@@ -401,9 +423,9 @@ const MatchClient = (() => {
         configure, connect, rematch, disconnect, setLocalStream,
         sendGameMove, sendSync, sendChat, sendCustom, sendReport,
         startGame, sendGameOver, sendGameQuit,
-        get sessionId()  { return sessionId;  },
-        get iceState()   { return pc ? pc.iceConnectionState : "none"; },
-        get isOfferer()  { return _isOfferer; },
+        get sessionId() { return sessionId;  },
+        get iceState()  { return pc ? pc.iceConnectionState : "none"; },
+        get isOfferer() { return _isOfferer; },
     };
 
 })();

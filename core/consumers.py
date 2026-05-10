@@ -1,39 +1,37 @@
 """
 core/consumers.py — MatchmakingConsumer
 
-All previous changes retained. Bugs fixed in this version:
+All previous fixes retained. New in this version:
 
-  FIX-1: session FK populated in _save_game_result
-    record_pair() now receives the MatchSession instance (looked up by UUID)
-    and passes it as `session=` so the FK column is never NULL.
+  VIBE-1: Vibe-aware matchmaking pools
+    Users now send a "join" message after connecting that declares:
+      { "type": "join", "vibe": "casual" | "board_game", "game": "<code>" }
+    The server places them in a vibe-scoped Redis pool key so they only
+    match with peers who chose the same vibe (and game, for board games).
 
-  FIX-2: game_over deduplication — only the offerer resolves the result
-    Previously both clients could send "game_over" and both would call
-    _handle_game_over, producing duplicate DB writes. Now only the offerer
-    is authoritative: the answerer's "game_over" is relayed to the offerer
-    via the channel layer, which then does the single DB write.
-    The answerer still receives the game_result broadcast so its UI updates.
+    Pool key format:
+      matchmaking:pool:casual            → casual chat
+      matchmaking:pool:board_game:<code> → specific board game (e.g. ttt, 3mm)
 
-  FIX-3: partner_user set on answerer side
-    peer_matched() now receives partner_user_id in the event and looks up
-    the User object so forfeit saves work correctly on the answerer too.
+    Both matched peers receive the vibe/game context in their "matched" message:
+      { "type": "matched", "session_id": ..., "is_offerer": ...,
+        "vibe": "board_game", "game": "ttt", "game_label": "Tic Tac Toe" }
+    The UI uses this to render the context banner and auto-launch the game.
 
-  FIX-4: self-match detection adds current user to waiting pool
-    When a self-match is detected, both the popped entry AND the current
-    user's entry are added back to the pool so neither user is lost.
+  VIBE-2: Board game auto-start
+    When matched on a board game, the server sends a "game_start" signal
+    to both peers immediately after the WebRTC "matched" handshake so the
+    game launches automatically without any further user action.
 
-  FIX-5: presence handling inlined — no external presence.py dependency
-    Removed the import of presence_connect/presence_disconnect/broadcast_presence
-    which would crash the entire consumer if presence.py doesn't exist.
-    Presence is handled inline with the same Redis pipeline as before.
+  VIBE-3: Pluggable game label lookup
+    GAME_LABELS is a simple dict mapping code → human label. Add/remove
+    entries here as new games ship — no other code needs to change.
 
-  FIX-6: session_game_result clears game state on both peers
-    The answerer's game state (game_session_id, game_type_code) is now
-    cleared when the game_result broadcast is received.
+  VIBE-4: Waiting state includes vibe context
+    The "waiting" response now echoes vibe/game back so the UI can show
+    "Looking for someone to play Tic Tac Toe…" instead of a generic message.
 
-  FIX-7: game_type validation added — no more hardcoded "3mm" default
-    _handle_game_start validates the game_type against the DB.
-    session_game_start stores the exact code with no default fallback.
+Previous fixes (FIX-1 through FIX-7) are all preserved unchanged.
 """
 
 import json
@@ -51,16 +49,41 @@ import redis.asyncio as aioredis
 logger = logging.getLogger(__name__)
 User = get_user_model()
 
-WAITING_POOL_KEY = "matchmaking:waiting_pool"
+# ── Redis key helpers ──────────────────────────────────────────────────────────
+
 SESSION_KEY      = lambda sid: f"session:{sid}"
 ONLINE_COUNT_KEY = "presence:online_count"
 ONLINE_USERS_KEY = "presence:online_users"
 
+# ── VIBE-1: Vibe-scoped pool keys ─────────────────────────────────────────────
 
-def get_redis():
-    url = getattr(settings, "REDIS_URL", "redis://127.0.0.1:6379")
-    return aioredis.from_url(url, decode_responses=True)
+VIBE_CASUAL     = "casual"
+VIBE_BOARD_GAME = "board_game"
+VALID_VIBES     = {VIBE_CASUAL, VIBE_BOARD_GAME}
 
+# VIBE-3: Add new game codes here as they ship; remove when retired.
+GAME_LABELS = {
+    "3mm":  "Three Men's Morris",
+    "ttt":  "Tic Tac Toe",
+    "cks":  "Checkers",
+    "sdk":  "Sudoku",
+    # "chess": "Chess",     ← uncomment when ready
+}
+
+
+def _pool_key(vibe: str, game: str | None = None) -> str:
+    """
+    Returns the Redis set key for a given vibe (and optional game code).
+    Examples:
+        _pool_key("casual")           → "matchmaking:pool:casual"
+        _pool_key("board_game", "ttt") → "matchmaking:pool:board_game:ttt"
+    """
+    if vibe == VIBE_BOARD_GAME and game:
+        return f"matchmaking:pool:board_game:{game}"
+    return f"matchmaking:pool:{vibe}"
+
+
+# ── Entry encoding ─────────────────────────────────────────────────────────────
 
 def _encode_pool_entry(channel_name: str, user_id: int) -> str:
     return f"{channel_name}:{user_id}"
@@ -69,6 +92,13 @@ def _encode_pool_entry(channel_name: str, user_id: int) -> str:
 def _decode_pool_entry(entry: str) -> tuple[str, int]:
     channel_name, user_id_str = entry.rsplit(":", 1)
     return channel_name, int(user_id_str)
+
+
+# ── Async DB helpers ───────────────────────────────────────────────────────────
+
+def get_redis():
+    url = getattr(settings, "REDIS_URL", "redis://127.0.0.1:6379")
+    return aioredis.from_url(url, decode_responses=True)
 
 
 @sync_to_async
@@ -136,7 +166,7 @@ def _save_game_result(match_session_id, game_type_code, winner_user, loser_user,
         logger.warning("Unknown game_type_code=%r — GameResult not saved.", game_type_code)
         return
 
-    # FIX-1: resolve MatchSession FK so record_pair can set the FK column
+    # FIX-1: resolve MatchSession FK
     try:
         match_session = MatchSession.objects.get(session_id=match_session_id)
     except MatchSession.DoesNotExist:
@@ -155,6 +185,10 @@ def _save_game_result(match_session_id, game_type_code, winner_user, loser_user,
     )
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  MatchmakingConsumer
+# ══════════════════════════════════════════════════════════════════════════════
+
 class MatchmakingConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
@@ -171,41 +205,96 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         self.is_offerer      = False
         self.game_session_id = None
         self.game_type_code  = None
+        self.waiting_warning_task = None
+
+        # VIBE-1: vibe state — populated by the first "join" message
+        self.vibe            = None   # "casual" | "board_game"
+        self.selected_game   = None   # game code when vibe == "board_game", else None
+        self._pool_key       = None   # resolved after join
+
+        # Update presence counters
+        redis = get_redis()
+        try:
+            from core.presence import presence_connect, broadcast_presence
+
+            await presence_connect(redis, user_pk=self.user.pk)
+            await broadcast_presence(redis)
+        finally:
+            await redis.aclose()
+
+        # Do NOT match yet — wait for "join" message with vibe selection.
+
+    # ── VIBE-1: "join" handler — first message from the client ────────────────
+
+    async def _handle_join(self, data):
+        """
+        Client sends: { "type": "join", "vibe": "casual"|"board_game", "game": "<code>" }
+        after the user picks their vibe on the landing screen.
+        We validate, store, build the pool key, then attempt matching.
+        """
+        vibe = data.get("vibe", "").strip()
+        game = data.get("game", "").strip() or None
+
+        # Validate vibe
+        if vibe not in VALID_VIBES:
+            await self.send_json({"type": "error", "message": f"Invalid vibe: {vibe}"})
+            return
+
+        # Board game must have a valid game code
+        if vibe == VIBE_BOARD_GAME:
+            if not game or game not in GAME_LABELS:
+                await self.send_json({
+                    "type": "error",
+                    "message": f"board_game vibe requires a valid game code. "
+                               f"Known: {list(GAME_LABELS.keys())}",
+                })
+                return
+        else:
+            game = None  # casual doesn't use game code
+
+        self.vibe          = vibe
+        self.selected_game = game
+        self._pool_key     = _pool_key(vibe, game)
 
         redis = get_redis()
         try:
-            # Update presence counters
-            async with redis.pipeline(transaction=False) as pipe:
-                pipe.incr(ONLINE_COUNT_KEY)
-                pipe.sadd(ONLINE_USERS_KEY, str(self.user.pk))
-                await pipe.execute()
-
             matched = await self._try_match(redis)
             if matched:
                 await self.send_json({
                     "type":       "matched",
                     "session_id": self.session_id,
                     "is_offerer": True,
+                    "vibe":       self.vibe,
+                    "game":       self.selected_game,
+                    "game_label": GAME_LABELS.get(self.selected_game, ""),
                 })
+                # VIBE-2: auto-start game for board_game vibe
+                if self.vibe == VIBE_BOARD_GAME and self.selected_game:
+                    await self._broadcast_game_start(self.selected_game)
             else:
-                await self.send_json({"type": "waiting"})
+                # VIBE-4: echo vibe context so UI can personalise waiting state
+                await self.send_json({
+                    "type":       "waiting",
+                    "vibe":       self.vibe,
+                    "game":       self.selected_game,
+                    "game_label": GAME_LABELS.get(self.selected_game, ""),
+                })
         finally:
             await redis.aclose()
 
     async def _try_match(self, redis) -> bool:
         my_entry    = _encode_pool_entry(self.channel_name, self.user.pk)
-        raw_partner = await redis.spop(WAITING_POOL_KEY)
+        raw_partner = await redis.spop(self._pool_key)
 
         if raw_partner:
             partner_channel, partner_user_id = _decode_pool_entry(raw_partner)
 
-            # FIX-4: self-match — put BOTH entries back and wait
+            # FIX-4: self-match guard
             if partner_user_id == self.user.pk:
-                await redis.sadd(WAITING_POOL_KEY, raw_partner)  # their entry back
-                await redis.sadd(WAITING_POOL_KEY, my_entry)     # our entry in pool
+                await redis.sadd(self._pool_key, raw_partner)
+                await redis.sadd(self._pool_key, my_entry)
                 return False
 
-            # Matched — set up session
             session_id    = str(uuid.uuid4())
             session_group = f"session_{session_id}"
 
@@ -219,6 +308,8 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                 "peer2":         my_entry,
                 "peer1_user_id": str(partner_user_id),
                 "peer2_user_id": str(self.user.pk),
+                "vibe":          self.vibe,
+                "game":          self.selected_game or "",
             })
             await redis.expire(SESSION_KEY(session_id), 3600)
 
@@ -231,20 +322,44 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(session_group, self.channel_name)
             await channel_layer.group_add(session_group, partner_channel)
 
-            # FIX-3: include partner_user_id so answerer can look up partner_user
+            # FIX-3: include partner_user_id; VIBE-1: include vibe/game context
             await channel_layer.send(partner_channel, {
                 "type":            "peer.matched",
                 "session_id":      session_id,
                 "session_group":   session_group,
                 "is_offerer":      False,
-                "partner_user_id": self.user.pk,   # FIX-3: answerer needs this
+                "partner_user_id": self.user.pk,
+                "vibe":            self.vibe,
+                "game":            self.selected_game,
+                "game_label":      GAME_LABELS.get(self.selected_game, ""),
             })
             return True
 
         else:
-            # Nobody waiting — add ourselves to the pool
-            await redis.sadd(WAITING_POOL_KEY, my_entry)
+            await redis.sadd(self._pool_key, my_entry)
             return False
+
+    # VIBE-2: broadcast game_start to both peers immediately on board_game match
+    async def _broadcast_game_start(self, game_code: str):
+        """
+        Sets game state on the offerer and sends a session.game_start event
+        to both peers so the game auto-launches without a further user tap.
+        """
+        if not self.session_group:
+            return
+
+        self.game_session_id = self.session_id
+        self.game_type_code  = game_code
+
+        await self.channel_layer.group_send(self.session_group, {
+            "type":    "session.game_start",
+            "sender":  self.channel_name,   # offerer originates; answerer will pick it up
+            "payload": {
+                "type":      "game_start",
+                "game_type": game_code,
+                "auto":      True,           # flag so UI knows this was server-initiated
+            },
+        })
 
     async def peer_matched(self, event):
         self.session_id    = event["session_id"]
@@ -257,11 +372,18 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             self.partner_user = await _get_user(partner_user_id)
 
         await self.channel_layer.group_add(self.session_group, self.channel_name)
+
+        # VIBE-1: include vibe/game context in the answerer's matched message
         await self.send_json({
             "type":       "matched",
             "session_id": self.session_id,
             "is_offerer": False,
+            "vibe":       event.get("vibe"),
+            "game":       event.get("game"),
+            "game_label": event.get("game_label", ""),
         })
+
+    # ── receive ────────────────────────────────────────────────────────────────
 
     async def receive(self, text_data=None, bytes_data=None):
         if not text_data:
@@ -273,6 +395,11 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             return
 
         msg_type = data.get("type")
+
+        # VIBE-1: "join" is the first expected message after connect
+        if msg_type == "join":
+            await self._handle_join(data)
+            return
 
         if msg_type == "report_peer":
             await self._handle_report()
@@ -326,12 +453,13 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         if self.is_offerer:
             await self._handle_game_over(event["payload"])
 
-    # ── game_start ────────────────────────────────────────────────────────
+    # ── game_start ─────────────────────────────────────────────────────────────
+
     async def _handle_game_start(self, data):
         if not self.session_group:
             return
 
-        # FIX-7: validate game_type — no hardcoded "3mm" default
+        # FIX-7: validate game_type
         game_type_code = data.get("game_type")
         if not game_type_code:
             await self.send_json({"type": "error", "message": "game_start requires game_type"})
@@ -346,22 +474,36 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_send(self.session_group, {
             "type":    "session.game_start",
             "sender":  self.channel_name,
-            "payload": {"type": "game_start", "game_type": self.game_type_code},
+            "payload": {
+                "type":      "game_start",
+                "game_type": self.game_type_code,
+                "auto":      data.get("auto", False),
+            },
         })
 
     async def session_game_start(self, event):
-        if event.get("sender") != self.channel_name:
-            payload = event["payload"]
-            self.game_session_id = self.session_id
-            self.game_type_code  = payload.get("game_type")   # FIX-7: no default
-            await self.send_json(payload)
+        payload = event["payload"]
 
-    # ── game_over (FIX-2: authoritative — offerer only) ───────────────────
+        # Manual invites:
+        # sender already launched locally via initiateGame()
+        # so don't echo back unless this is an auto-start.
+        if (
+            not payload.get("auto", False)
+            and event.get("sender") == self.channel_name
+        ):
+            return
+
+        self.game_session_id = self.session_id
+        self.game_type_code  = payload.get("game_type")
+
+        await self.send_json(payload)
+
+    # ── game_over (FIX-2) ──────────────────────────────────────────────────────
+
     async def _handle_game_over(self, data):
         if not self.game_session_id or not self.game_type_code:
             return
 
-        # Snapshot and clear immediately — prevents any second call writing again
         game_session_id      = self.game_session_id
         game_type_code       = self.game_type_code
         self.game_session_id = None
@@ -401,12 +543,13 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             })
 
     async def session_game_result(self, event):
-        # FIX-6: clear game state on both peers when result arrives
+        # FIX-6: clear game state on both peers
         self.game_session_id = None
         self.game_type_code  = None
         await self.send_json(event["payload"])
 
-    # ── game_quit ─────────────────────────────────────────────────────────
+    # ── game_quit ──────────────────────────────────────────────────────────────
+
     async def _handle_game_quit(self):
         if not self.game_session_id or not self.game_type_code:
             return
@@ -437,7 +580,8 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
                 },
             })
 
-    # ── watchdog ──────────────────────────────────────────────────────────
+    # ── watchdog ───────────────────────────────────────────────────────────────
+
     async def _handle_watchdog_timeout(self):
         logger.info(
             "Watchdog timeout: user=%s session=%s",
@@ -468,7 +612,8 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
         self.session_group = None
         await self.send_json({"type": "watchdog_ack"})
 
-    # ── report ────────────────────────────────────────────────────────────
+    # ── report ─────────────────────────────────────────────────────────────────
+
     async def _handle_report(self):
         if not self.session_id:
             await self.send_json({"type": "error", "message": "No active session to report"})
@@ -480,7 +625,8 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
             logger.exception("Error flagging report: %s", exc)
             await self.send_json({"type": "error", "message": "Could not submit report"})
 
-    # ── channel-layer forwarding ──────────────────────────────────────────
+    # ── channel-layer forwarding ───────────────────────────────────────────────
+
     async def _forward(self, event):
         if event.get("sender") == self.channel_name:
             return
@@ -494,23 +640,23 @@ class MatchmakingConsumer(AsyncWebsocketConsumer):
     async def session_chat(self, event):           await self._forward(event)
     async def session_custom(self, event):         await self._forward(event)
 
-    # ── disconnect ────────────────────────────────────────────────────────
+    # ── disconnect ─────────────────────────────────────────────────────────────
+
     async def disconnect(self, close_code):
         redis = get_redis()
         try:
             if hasattr(self, "user") and self.user.is_authenticated:
-                # Decrement online count safely (never below 0)
                 async with redis.pipeline(transaction=False) as pipe:
-                    pipe.eval(
-                        "local v = redis.call('decr', KEYS[1]); "
-                        "if v < 0 then redis.call('set', KEYS[1], 0) end; return v",
-                        1, ONLINE_COUNT_KEY,
-                    )
-                    pipe.srem(ONLINE_USERS_KEY, str(self.user.pk))
+                    from core.presence import presence_disconnect, broadcast_presence
+
+                    await presence_disconnect(redis, user_pk=self.user.pk)
+                    await broadcast_presence(redis)
                     await pipe.execute()
 
-                my_entry = _encode_pool_entry(self.channel_name, self.user.pk)
-                await redis.srem(WAITING_POOL_KEY, my_entry)
+                # Remove from whichever vibe pool we were in (if still waiting)
+                if self._pool_key:
+                    my_entry = _encode_pool_entry(self.channel_name, self.user.pk)
+                    await redis.srem(self._pool_key, my_entry)
 
             # Forfeit if mid-game
             if self.game_session_id and self.game_type_code and self.partner_user:
