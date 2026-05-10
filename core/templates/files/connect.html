@@ -734,6 +734,117 @@
       to { opacity: 0; transform: translateY(10px); }
     }
 
+    /* ── QUIET NUDGE TOAST (waiting too long) ─────────────────────────────── */
+    .quiet-toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1100;
+      background: #ffffff;
+      border: 1px solid #e5e5e5;
+      border-radius: 20px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+      padding: 14px 18px 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 280px;
+      max-width: calc(100vw - 48px);
+      animation: quietToastIn 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+      white-space: nowrap;
+    }
+
+    .quiet-toast.hiding {
+      animation: quietToastOut 0.25s ease forwards;
+    }
+
+    @keyframes quietToastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.96); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1);   }
+    }
+    @keyframes quietToastOut {
+      to   { opacity: 0; transform: translateX(-50%) translateY(14px) scale(0.95); }
+    }
+
+    .quiet-toast-icon {
+      font-size: 1.35rem;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .quiet-toast-body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .quiet-toast-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #111111;
+      line-height: 1.3;
+      margin-bottom: 1px;
+    }
+
+    .quiet-toast-sub {
+      font-size: 0.74rem;
+      color: #888888;
+      line-height: 1.35;
+      white-space: normal;
+    }
+
+    .quiet-toast-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .quiet-toast-btn {
+      padding: 7px 14px;
+      border-radius: 30px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      border: 1px solid #e5e5e5;
+      background: #f5f5f5;
+      color: #333333;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .quiet-toast-btn:hover { background: #ebebeb; border-color: #d0d0d0; }
+
+    .quiet-toast-btn.primary {
+      background: #111111;
+      color: #ffffff;
+      border-color: #111111;
+    }
+    .quiet-toast-btn.primary:hover { background: #333333; border-color: #333333; }
+
+    .quiet-toast-dismiss {
+      background: none;
+      border: none;
+      color: #cccccc;
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 2px 4px;
+      line-height: 1;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .quiet-toast-dismiss:hover { color: #888888; }
+
+    @media (max-width: 560px) {
+      .quiet-toast {
+        flex-wrap: wrap;
+        white-space: normal;
+        bottom: 16px;
+        padding: 12px 14px;
+        gap: 10px;
+      }
+      .quiet-toast-actions { width: 100%; justify-content: flex-end; }
+    }
+
     /* ── GAME RESULT BANNER ───────────────────────────────────────────────── */
     .game-result-banner {
       position: fixed;
@@ -1542,6 +1653,82 @@
   let countdownTimer = null;
   let _localResultShown = false;
 
+  // ── WAITING NUDGE ──────────────────────────────────────────────────────────
+  let _waitingNudgeTimer   = null;   // fires when user waits too long
+  let _quietToastEl        = null;   // reference to current nudge toast DOM node
+  const WAITING_NUDGE_MS   = 15_000; // 15 s before nudging the user
+
+  function _startWaitingNudge(ctx) {
+    _clearWaitingNudge();
+    _waitingNudgeTimer = setTimeout(() => _showQuietToast(ctx), WAITING_NUDGE_MS);
+  }
+
+  function _clearWaitingNudge() {
+    if (_waitingNudgeTimer !== null) {
+      clearTimeout(_waitingNudgeTimer);
+      _waitingNudgeTimer = null;
+    }
+    _dismissQuietToast(true);
+  }
+
+  function _showQuietToast(ctx) {
+    _dismissQuietToast(true);
+
+    const vibeLabel = ctx.vibe === 'board_game' && ctx.gameLabel
+      ? ctx.gameLabel
+      : ctx.vibe === 'board_game'
+        ? 'Board Games'
+        : 'Casual Chat';
+
+    const toast = document.createElement('div');
+    toast.className = 'quiet-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.innerHTML = `
+      <span class="quiet-toast-icon">🕐</span>
+      <div class="quiet-toast-body">
+        <div class="quiet-toast-title">Seems quiet for ${escapeHtml(vibeLabel)}</div>
+        <div class="quiet-toast-sub">You can wait a little longer or try a different vibe</div>
+      </div>
+      <div class="quiet-toast-actions">
+        <button class="quiet-toast-btn" id="nudgeBtnWait">Keep waiting</button>
+        <button class="quiet-toast-btn primary" id="nudgeBtnChange">Change vibe</button>
+      </div>
+      <button class="quiet-toast-dismiss" aria-label="Dismiss">✕</button>
+    `;
+
+    document.body.appendChild(toast);
+    _quietToastEl = toast;
+
+    toast.querySelector('#nudgeBtnWait').addEventListener('click', () => {
+      _dismissQuietToast();
+    });
+
+    toast.querySelector('#nudgeBtnChange').addEventListener('click', () => {
+      _dismissQuietToast();
+      MatchClient.disconnect();
+      setStatus('', 'disconnected');
+      showPanel('idle');
+      muteCamera();
+      document.getElementById('waitingHeading').textContent = 'finding someone...';
+      document.getElementById('waitingSub').textContent = "hang tight, we're looking for a match";
+      addLog('Cancelled — returning to vibe selection', 'info');
+    });
+
+    toast.querySelector('.quiet-toast-dismiss').addEventListener('click', () => {
+      _dismissQuietToast();
+    });
+  }
+
+  function _dismissQuietToast(instant = false) {
+    if (!_quietToastEl) return;
+    const el = _quietToastEl;
+    _quietToastEl = null;
+    if (instant) { el.remove(); return; }
+    el.classList.add('hiding');
+    setTimeout(() => el.remove(), 270);
+  }
+
   // ── VIBE SELECTION STATE ──────────────────────────────────────────────────
   let _selectedVibe = null;   // "casual" | "board_game"
   let _selectedGame = null;   // game code when _selectedVibe === "board_game"
@@ -2032,6 +2219,7 @@
       setStatus('waiting', 'searching...');
       const ctxLabel = ctx.gameLabel || (ctx.vibe === 'casual' ? 'casual chat' : ctx.vibe || 'match');
       addLog(`Looking for a ${ctxLabel} partner`, 'event');
+      _startWaitingNudge(ctx);   // ← start the "no one around" nudge timer
     },
 
     onMatched(sessionId, ctx) {
@@ -2051,6 +2239,8 @@
       _clearGameStarted();
 
       if (gameActive) deactivateGameMode();
+
+      _clearWaitingNudge();   // ← matched — clear the nudge
 
       _showVibeBanner(ctx);
 
@@ -2251,6 +2441,18 @@
 
     setStatus('waiting', 'connecting...');
     addLog(`Connecting (vibe: ${_selectedVibe}${_selectedGame ? ' · ' + _selectedGame : ''})`, 'info');
+
+    // Start nudge timer immediately — don't wait for the server's "waiting" echo.
+    // onWaiting will call _startWaitingNudge again with server-confirmed ctx on rematch.
+    const _nudgeEntry = _selectedGame
+      ? GAME_REGISTRY.find(g => g.code === _selectedGame)
+      : null;
+    _startWaitingNudge({
+      vibe:      _selectedVibe,
+      game:      _selectedGame,
+      gameLabel: _nudgeEntry ? _nudgeEntry.label : '',
+    });
+
     startCamera();
     MatchClient.connect();
   });
@@ -2260,6 +2462,7 @@
     setStatus('', 'disconnected');
     showPanel('idle');
     muteCamera();
+    _clearWaitingNudge();   // ← user cancelled manually
     // FIX: reset waiting copy so next open shows neutral text
     document.getElementById('waitingHeading').textContent = 'finding someone...';
     document.getElementById('waitingSub').textContent = 'hang tight, we\'re looking for a match';
@@ -2309,6 +2512,7 @@
   function doLeave() {
     if (gameActive) deactivateGameMode();
     _clearGameStarted();
+    _clearWaitingNudge();
     MatchClient.disconnect();
     muteCamera();
     setStatus('', 'disconnected');
