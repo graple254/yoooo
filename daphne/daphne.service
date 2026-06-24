@@ -11,7 +11,7 @@ EnvironmentFile=/home/ubuntu/chichi/.env
 ExecStart=/home/ubuntu/chichi/venv/bin/daphne \
     -u /run/daphne.sock \
     --proxy-headers \
-    yourproject.asgi:application
+    chichi.asgi:application
 Restart=always
 RestartSec=5
 StandardOutput=journal
